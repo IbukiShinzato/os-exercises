@@ -552,21 +552,26 @@ void truncate3(char* s)
 // does chdir() call iput(p->cwd) in a transaction?
 void iputtest(char* s)
 {
+    // iputdirディレクトリを作成
     if (mkdir("iputdir") < 0)
     {
         printf("%s: mkdir failed\n", s);
         exit(1);
     }
+    // iputdirディレクトリに移動
     if (chdir("iputdir") < 0)
     {
         printf("%s: chdir iputdir failed\n", s);
         exit(1);
     }
+    // iputdirディレクトリを削除
     if (unlink("../iputdir") < 0)
     {
         printf("%s: unlink ../iputdir failed\n", s);
         exit(1);
     }
+    // ルートディレクトリ（/）に移動
+    // ここで初めて../inputdirがunlinkされる
     if (chdir("/") < 0)
     {
         printf("%s: chdir / failed\n", s);
@@ -585,6 +590,7 @@ void exitiputtest(char* s)
         printf("%s: fork failed\n", s);
         exit(1);
     }
+    // 子プロセスでの実行
     if (pid == 0)
     {
         if (mkdir("iputdir") < 0)
@@ -597,6 +603,7 @@ void exitiputtest(char* s)
             printf("%s: child chdir failed\n", s);
             exit(1);
         }
+        // この時点ではプロセスがiputdir上にいるのでunlinkされない
         if (unlink("../iputdir") < 0)
         {
             printf("%s: unlink ../iputdir failed\n", s);
@@ -605,6 +612,7 @@ void exitiputtest(char* s)
         exit(0);
     }
     wait(&xstatus);
+    // 子プロセスの終了通知を受け取った後にunlinkされる
     exit(xstatus);
 }
 
@@ -623,19 +631,23 @@ void openiputtest(char* s)
 {
     int pid, xstatus;
 
+    // oidirディレクトリを作成
     if (mkdir("oidir") < 0)
     {
         printf("%s: mkdir oidir failed\n", s);
         exit(1);
     }
+    // process 生成
     pid = fork();
     if (pid < 0)
     {
         printf("%s: fork failed\n", s);
         exit(1);
     }
+    // 子プロセス生成
     if (pid == 0)
     {
+        // oidirディレクトリを書き込みモードでopen
         int fd = open("oidir", O_RDWR);
         if (fd >= 0)
         {
@@ -644,7 +656,9 @@ void openiputtest(char* s)
         }
         exit(0);
     }
+    // 1秒休眠
     pause(1);
+    // 子プロセスが休眠している状態時にwait前にoidirを削除
     if (unlink("oidir") != 0)
     {
         printf("%s: unlink failed\n", s);
@@ -660,13 +674,17 @@ void opentest(char* s)
 {
     int fd;
 
+    // echoファイルを開く
     fd = open("echo", 0);
     if (fd < 0)
     {
         printf("%s: open echo failed!\n", s);
         exit(1);
     }
+    // echoファイルを閉じる
     close(fd);
+    // doesnotexistファイルを開く
+    // O_CREATフラグもないのでエラーを返す
     fd = open("doesnotexist", 0);
     if (fd >= 0)
     {
@@ -685,14 +703,17 @@ void writetest(char* s)
         SZ = 10
     };
 
+    // smallファイルの作成
     fd = open("small", O_CREATE | O_RDWR);
     if (fd < 0)
     {
         printf("%s: error: creat small failed!\n", s);
         exit(1);
     }
+    // 100回ループ
     for (i = 0; i < N; i++)
     {
+        // smallファイルに10Byte書き込み
         if (write(fd, "aaaaaaaaaa", SZ) != SZ)
         {
             printf("%s: error: write aa %d new file failed\n", s, i);
@@ -705,13 +726,17 @@ void writetest(char* s)
         }
     }
     close(fd);
+    // 読み取りモードでsmallファイルをopen
     fd = open("small", O_RDONLY);
     if (fd < 0)
     {
         printf("%s: error: open small failed!\n", s);
         exit(1);
     }
+    // bufはglobal変数 
     i = read(fd, buf, N * SZ * 2);
+    // 100 * 10 * 2Byteの読み取り
+    // for文一回でa * 10 + b * 10の100回ループで合計2000Byte
     if (i != N * SZ * 2)
     {
         printf("%s: read failed\n", s);
@@ -730,6 +755,7 @@ void writebig(char* s)
 {
     int i, fd, n;
 
+    // bigファイルを作成、読み書きモードでopen
     fd = open("big", O_CREATE | O_RDWR);
     if (fd < 0)
     {
@@ -737,8 +763,17 @@ void writebig(char* s)
         exit(1);
     }
 
+    // #define BSIZE 1024  // block size
+    // #define NDIRECT 12
+    // #define NINDIRECT (BSIZE / sizeof(uint)) // 1024 / 4 = 256Byte
+    // #define MAXFILE (NDIRECT + NINDIRECT)
+
+    // ファイルシステムが許す最大サイズ(MAXFILE)まで書き込む
+    // NDIRECT(12) + NINDIRECT(256) = 268ブロック
     for (i = 0; i < MAXFILE; i++)
     {
+        // bufに0 ~ MAXFILE - 1までを書き込む
+        // 何番目のブロックかを書き込む
         ((int*)buf)[0] = i;
         if (write(fd, buf, BSIZE) != BSIZE)
         {
@@ -749,6 +784,8 @@ void writebig(char* s)
 
     close(fd);
 
+    // bigファイルを読み取りモードでopen
+    // bufからファイルに書いたのを次はファイルから読み出す
     fd = open("big", O_RDONLY);
     if (fd < 0)
     {
@@ -757,11 +794,16 @@ void writebig(char* s)
     }
 
     n = 0;
+    // 無限ループ（rustでいうloop {})
+    // nをインクリメントしていることから、ループの限度はある
     for (;;)
     {
+        // bigファイルにbufferの値を読み込む
+        // ブロックサイズ分のデータを読み取る
         i = read(fd, buf, BSIZE);
         if (i == 0)
         {
+            // 全てのブロックを読み終えた時
             if (n != MAXFILE)
             {
                 printf("%s: read only %d blocks from big", s, n);
@@ -769,11 +811,13 @@ void writebig(char* s)
             }
             break;
         }
+        // ブロックサイズ分の読み取りができていない時
         else if (i != BSIZE)
         {
             printf("%s: read failed %d\n", s, i);
             exit(1);
         }
+        // 読み込んだブロックの先頭のデータが想定のブロック番号と一致しない時
         if (((int*)buf)[0] != n)
         {
             printf("%s: read content of block %d is %d\n", s, n, ((int*)buf)[0]);
@@ -782,6 +826,7 @@ void writebig(char* s)
         n++;
     }
     close(fd);
+    // bigファイルの削除
     if (unlink("big") < 0)
     {
         printf("%s: unlink big failed\n", s);
@@ -798,44 +843,55 @@ void createtest(char* s)
         N = 52
     };
 
+    // 2文字のname
     char name[3];
     name[0] = 'a';
     name[2] = '\0';
     for (i = 0; i < N; i++)
     {
+        // 末尾に文字を代入
+        // '0' + iなのがよくわからない
         name[1] = '0' + i;
+        // a0 ~ 合計52つのファイルを作成
         fd = open(name, O_CREATE | O_RDWR);
         close(fd);
     }
     name[0] = 'a';
     name[2] = '\0';
+    // 52つのファイルを削除
     for (i = 0; i < N; i++)
     {
         name[1] = '0' + i;
+        // fileの削除
         unlink(name);
     }
 }
 
 void dirtest(char* s)
 {
+    // dir0ディレクトリの作成
     if (mkdir("dir0") < 0)
     {
         printf("%s: mkdir failed\n", s);
         exit(1);
     }
 
+    // dir0ディレクトリに移動
     if (chdir("dir0") < 0)
     {
         printf("%s: chdir dir0 failed\n", s);
         exit(1);
     }
-
+    
+    // 元のディレクトリに戻る
     if (chdir("..") < 0)
     {
         printf("%s: chdir .. failed\n", s);
         exit(1);
     }
 
+    // dir0ディレクトリを削除
+    // この時dir0を参照していないのでunlinkは成功する
     if (unlink("dir0") < 0)
     {
         printf("%s: unlink dir0 failed\n", s);
@@ -849,27 +905,38 @@ void exectest(char* s)
     char* echoargv[] = {"echo", "OK", 0};
     char buf[3];
 
+    // echo-okファイルを削除
     unlink("echo-ok");
+    // プロセス生成
     pid = fork();
     if (pid < 0)
     {
         printf("%s: fork failed\n", s);
         exit(1);
     }
+    // 子プロセス
     if (pid == 0)
     {
+        // 標準出力をclose
+        // このことによりecho-okが1番を割り当てられる
         close(1);
+        // echo-okファイルを作成
         fd = open("echo-ok", O_CREATE | O_WRONLY);
         if (fd < 0)
         {
             printf("%s: create failed\n", s);
             exit(1);
         }
+        // echo-okがfd 1番を想定している
         if (fd != 1)
         {
             printf("%s: wrong fd\n", s);
             exit(1);
         }
+        // echoコマンドを実行
+        // 引数には"OK"
+        // echoの結果は1番に書き込まれるが、これは標準出力ではなくてecho-okファイルに書き込まれている状態
+        // つまり echo OK > echo-ok
         if (exec("echo", echoargv) < 0)
         {
             printf("%s: exec echo failed\n", s);
@@ -877,24 +944,33 @@ void exectest(char* s)
         }
         // won't get to here
     }
+    // 子プロセスを待機
+    // 親プロセスが生成した子プロセスのpidかをチェック
     if (wait(&xstatus) != pid)
     {
         printf("%s: wait failed!\n", s);
     }
+    // 子プロセスの終了コード
+    // 終了コードが異常なしか(0番ならOK）
     if (xstatus != 0) exit(xstatus);
 
+    // 親プロセスからもecho-okファイルを開く
     fd = open("echo-ok", O_RDONLY);
     if (fd < 0)
     {
         printf("%s: open failed\n", s);
         exit(1);
     }
+    // 2バイト分読み込む
+    // echo-ok -> buf
     if (read(fd, buf, 2) != 2)
     {
         printf("%s: read failed\n", s);
         exit(1);
     }
+    // echo-okファイルを削除
     unlink("echo-ok");
+    // bufにそれぞれO,Kが入っているか 
     if (buf[0] == 'O' && buf[1] == 'K')
         exit(0);
     else
@@ -916,19 +992,30 @@ void pipe1(char* s)
         SZ = 1033
     };
 
+    // pipeシステムコールが成功しているか
+    // fds[0]: Read用(出口)
+    // fds[1]: Write用(入口)
+    // pipeを実行するとそれぞれにfdが割り当てられる
     if (pipe(fds) != 0)
     {
         printf("%s: pipe() failed\n", s);
         exit(1);
     }
+    // プロセス生成
     pid = fork();
     seq = 0;
+    // 子プロセス
     if (pid == 0)
     {
+        // 出口は使用しないからclose 
+        // 子プロセスではbufにデータを書き込む
         close(fds[0]);
         for (n = 0; n < N; n++)
         {
+            // 0 ~ 1032までのbufにseqのincを代入
+            // 書き込み口に0 ~ 1032までの数字を書き込む
             for (i = 0; i < SZ; i++) buf[i] = seq++;
+            // それをbufに書きこむ 
             if (write(fds[1], buf, SZ) != SZ)
             {
                 printf("%s: pipe1 oops 1\n", s);
@@ -937,32 +1024,48 @@ void pipe1(char* s)
         }
         exit(0);
     }
+    // 親プロセス
     else if (pid > 0)
     {
+        // 入口は使用しないからclose
+        // 親プロセスでは出口からデータを受け取る
         close(fds[1]);
+        // 合計値を初期化
         total = 0;
         cc = 1;
+        // bufから入力窓口に代入
+        // データを何も受け取らなくなったら終了
         while ((n = read(fds[0], buf, cc)) > 0)
         {
+            // 一バイトずつ読み込む？
             for (i = 0; i < n; i++)
             {
+                // bufはchar型で1Byteのみしか値を持たないので0xffでマスクして下位8bitでの比較
                 if ((buf[i] & 0xff) != (seq++ & 0xff))
                 {
                     printf("%s: pipe1 oops 2\n", s);
                     return;
                 }
             }
+            // 読み込んだバイト数を足す
             total += n;
+            // 入力で受け取るバイト数を二倍にする
+            // ストリームのサイズを変える
             cc = cc * 2;
+            // bufのサイズより大きかったらbufのサイズに調整する
             if (cc > sizeof(buf)) cc = sizeof(buf);
         }
+        // 読み込んだバイト数が任意のバイト数と一致しなかったら
         if (total != N * SZ)
         {
             printf("%s: pipe1 oops 3 total %d\n", s, total);
             exit(1);
         }
+        // 入力窓口をclose
         close(fds[0]);
+        // 子プロセスの終了を待機
         wait(&xstatus);
+        // 終了
         exit(xstatus);
     }
     else
