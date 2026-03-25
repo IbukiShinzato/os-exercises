@@ -2465,41 +2465,49 @@ void fourteen(char* s)
 
 void rmdot(char* s)
 {
+    // dots dirを作成
     if (mkdir("dots") != 0)
     {
         printf("%s: mkdir dots failed\n", s);
         exit(1);
     }
+    // 移動
     if (chdir("dots") != 0)
     {
         printf("%s: chdir dots failed\n", s);
         exit(1);
     }
+    // dotsを参照しているから削除できない
     if (unlink(".") == 0)
     {
         printf("%s: rm . worked!\n", s);
         exit(1);
     }
+    // 上記同様
     if (unlink("..") == 0)
     {
         printf("%s: rm .. worked!\n", s);
         exit(1);
     }
+    // ルートディレクトリに移動
     if (chdir("/") != 0)
     {
         printf("%s: chdir / failed\n", s);
         exit(1);
     }
+    // .は削除できない
     if (unlink("dots/.") == 0)
     {
         printf("%s: unlink dots/. worked!\n", s);
         exit(1);
     }
+    // ..も削除できない
     if (unlink("dots/..") == 0)
     {
         printf("%s: unlink dots/.. worked!\n", s);
         exit(1);
     }
+    // dotsを参照していないので削除可能
     if (unlink("dots") != 0)
     {
         printf("%s: unlink dots failed!\n", s);
@@ -2511,6 +2519,7 @@ void dirfile(char* s)
 {
     int fd;
 
+    // dirfileを作成
     fd = open("dirfile", O_CREATE);
     if (fd < 0)
     {
@@ -2518,45 +2527,54 @@ void dirfile(char* s)
         exit(1);
     }
     close(fd);
+    // ファイルなので移動できない
     if (chdir("dirfile") == 0)
     {
         printf("%s: chdir dirfile succeeded!\n", s);
         exit(1);
     }
     fd = open("dirfile/xx", 0);
+    // file内にディレクトリは作れない
     if (fd >= 0)
     {
         printf("%s: create dirfile/xx succeeded!\n", s);
         exit(1);
     }
     fd = open("dirfile/xx", O_CREATE);
+    // O_CREATEフラグを付けても作れない
     if (fd >= 0)
     {
         printf("%s: create dirfile/xx succeeded!\n", s);
         exit(1);
     }
+    // dirfileはファイルなのでディレクトリも作れない
     if (mkdir("dirfile/xx") == 0)
     {
         printf("%s: mkdir dirfile/xx succeeded!\n", s);
         exit(1);
     }
+    // xxは存在しない
     if (unlink("dirfile/xx") == 0)
     {
         printf("%s: unlink dirfile/xx succeeded!\n", s);
         exit(1);
     }
+    // dirfileディレクトリは存在しなし
     if (link("README", "dirfile/xx") == 0)
     {
         printf("%s: link to dirfile/xx succeeded!\n", s);
         exit(1);
     }
+    // dirfileを削除
     if (unlink("dirfile") != 0)
     {
         printf("%s: unlink dirfile failed!\n", s);
         exit(1);
     }
 
+    // current dir をopen
     fd = open(".", O_RDWR);
+    // 書き込みフラグはつけれない
     if (fd >= 0)
     {
         printf("%s: open . for writing succeeded!\n", s);
@@ -2577,23 +2595,29 @@ void iref(char* s)
 {
     int i, fd;
 
+    // NINODE: xv6カーネルがメモリ上に同時に保持できる i-node の最大数
     for (i = 0; i < NINODE + 1; i++)
     {
+        // irefdを作成
         if (mkdir("irefd") != 0)
         {
             printf("%s: mkdir irefd failed\n", s);
             exit(1);
         }
+        // irefdに移動
         if (chdir("irefd") != 0)
         {
             printf("%s: chdir irefd failed\n", s);
             exit(1);
         }
 
+        // 空ディレクトリを作成
         mkdir("");
         link("README", "");
+        // 空ファイルを作成
         fd = open("", O_CREATE);
         if (fd >= 0) close(fd);
+        // xxファイルを作成
         fd = open("xx", O_CREATE);
         if (fd >= 0) close(fd);
         unlink("xx");
@@ -2622,25 +2646,32 @@ void forktest(char* s)
 
     for (n = 0; n < N; n++)
     {
+        // プロセス生成
         pid = fork();
+        // fork失敗
         if (pid < 0) break;
+        // 子プロセスはexit
         if (pid == 0) exit(0);
     }
 
+    // 一回もforkできなかった
     if (n == 0)
     {
         printf("%s: no fork at all!\n", s);
         exit(1);
     }
 
+    // forkを1000回できた
     if (n == N)
     {
         printf("%s: fork claimed to work 1000 times!\n", s);
         exit(1);
     }
 
+    // forkした分のプロセスの終了待機
     for (; n > 0; n--)
     {
+        // 終了したはずの子プロセスを待てなかった 
         if (wait(0) < 0)
         {
             printf("%s: wait stopped early\n", s);
@@ -2648,6 +2679,7 @@ void forktest(char* s)
         }
     }
 
+    // forkが失敗して-1が返って来るのを期待
     if (wait(0) != -1)
     {
         printf("%s: wait got too many\n", s);
@@ -2659,27 +2691,33 @@ void sbrkbasic(char* s)
 {
     enum
     {
-        TOOMUCH = 1024 * 1024 * 1024
+        TOOMUCH = 1024 * 1024 * 1024 // 1GiB
     };
     int i, pid, xstatus;
     char *c, *a, *b;
 
     // does sbrk() return the expected failure value?
+    // プロセス生成
     pid = fork();
     if (pid < 0)
     {
         printf("fork failed in sbrkbasic\n");
         exit(1);
     }
+    // 子プロセスの処理
     if (pid == 0)
     {
+        // 十分に大きすぎるサイズのsbrk
         a = sbrk(TOOMUCH);
+        // ちゃんとエラーを返すか
         if (a == (char*)SBRK_ERROR)
         {
             // it's OK if this fails.
             exit(0);
         }
+        // ここで子プロセスは終了するべき
 
+        // 各ページに99を書き込む 
         for (b = a; b < a + TOOMUCH; b += PGSIZE)
         {
             *b = 99;
@@ -2692,6 +2730,7 @@ void sbrkbasic(char* s)
     }
 
     wait(&xstatus);
+    // メモリの拡張が成功してしまった場合(良くない）
     if (xstatus == 1)
     {
         printf("%s: too much memory allocated!\n", s);
@@ -2699,25 +2738,35 @@ void sbrkbasic(char* s)
     }
 
     // can one sbrk() less than a page?
+    // ページ単位未満での拡張
+    
+    // 現在のヒープの末尾アドレス
     a = sbrk(0);
     for (i = 0; i < 5000; i++)
     {
+        // 1Byteだけ拡張、戻り値は拡張前のアドレス
         b = sbrk(1);
+        // aとbは同じであることを期待
         if (b != a)
         {
             printf("%s: sbrk test failed %d %p %p\n", s, i, a, b);
             exit(1);
         }
+        // 拡張した1Byteに書き込み
         *b = 1;
+        // ヒープの末尾アドレスを更新
         a = b + 1;
     }
+    // 子プロセスを生成
     pid = fork();
     if (pid < 0)
     {
         printf("%s: sbrk test fork failed\n", s);
         exit(1);
     }
+    // ここではaのアドレスを返す
     c = sbrk(1);
+    // ここではa + 1のアドレスを返す
     c = sbrk(1);
     if (c != a + 1)
     {
@@ -2733,16 +2782,20 @@ void sbrkmuch(char* s)
 {
     enum
     {
-        BIG = 100 * 1024 * 1024
+        BIG = 100 * 1024 * 1024 // 100MiB
     };
     char *c, *oldbrk, *a, *lastaddr, *p;
     uint64 amt;
 
+    // 現在のヒープ領域末尾アドレスを返す
     oldbrk = sbrk(0);
 
     // can one grow address space to something big?
+    // 現在のヒープ領域末尾アドレスを返す
     a = sbrk(0);
+    // 100MiBに到達するためのメモリサイズ 
     amt = BIG - (uint64)a;
+    // 拡張前のアドレスが戻り値
     p = sbrk(amt);
     if (p != a)
     {
@@ -2750,18 +2803,24 @@ void sbrkmuch(char* s)
         exit(1);
     }
 
+    // ヒープ領域末尾のアドレス
     lastaddr = (char*)(BIG - 1);
     *lastaddr = 99;
 
     // can one de-allocate?
+    // ヒープ末尾アドレス
     a = sbrk(0);
+    // 1Page分解放
+    // 開放前のアドレスが戻り値
     c = sbrk(-PGSIZE);
     if (c == (char*)SBRK_ERROR)
     {
         printf("%s: sbrk could not deallocate\n", s);
         exit(1);
     }
+    // 1Page分解放されたところの末尾アドレス
     c = sbrk(0);
+    // aから1Page分のみ解放されているのでc = a - PGSIZE
     if (c != a - PGSIZE)
     {
         printf("%s: sbrk deallocation produced wrong address, a %p c %p\n", s, a, c);
@@ -2769,13 +2828,19 @@ void sbrkmuch(char* s)
     }
 
     // can one re-allocate that page?
+    // 再配置
+    // 現在の末尾アドレス
     a = sbrk(0);
+    // 1Page(4KiB)分拡張
+    // 拡張前のアドレスが戻り値
     c = sbrk(PGSIZE);
+    // 1Page分拡張されている想定 
     if (c != a || sbrk(0) != a + PGSIZE)
     {
         printf("%s: sbrk re-allocation failed, a %p c %p\n", s, a, c);
         exit(1);
     }
+    // 一度捨てたメモリなので初期値の0になる
     if (*lastaddr == 99)
     {
         // should be zero
@@ -2784,6 +2849,7 @@ void sbrkmuch(char* s)
     }
 
     a = sbrk(0);
+    // 拡張した分のサイズ解放する
     c = sbrk(-(sbrk(0) - oldbrk));
     if (c != a)
     {
@@ -2798,14 +2864,17 @@ void kernmem(char* s)
     char* a;
     int pid;
 
+    // #define KERNBASE 0x80000000L
     for (a = (char*)(KERNBASE); a < (char*)(KERNBASE + 2000000); a += 50000)
     {
+        // 子プロセス生成
         pid = fork();
         if (pid < 0)
         {
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // 子プロセスがカーネル領域を読み取ろうとする
         if (pid == 0)
         {
             printf("%s: oops could read %p = %x\n", s, a, *a);
@@ -2813,6 +2882,7 @@ void kernmem(char* s)
         }
         int xstatus;
         wait(&xstatus);
+        // kernelに子プロセスは殺されて-1が返ってころばOK
         if (xstatus != -1)  // did kernel kill child?
             exit(1);
     }
@@ -2821,24 +2891,31 @@ void kernmem(char* s)
 // user code should not be able to write to addresses above MAXVA.
 void MAXVAplus(char* s)
 {
+    // #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
     volatile uint64 a = MAXVA;
+    // overflowするまで
     for (; a != 0; a <<= 1)
     {
         int pid;
+        // プロセス生成
         pid = fork();
         if (pid < 0)
         {
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // 子プロセス
         if (pid == 0)
         {
+            // あるアドレスに対して99を書き込む
             *(char*)a = 99;
+            // 書き込めてしまったら終了
             printf("%s: oops wrote %p\n", s, (void*)a);
             exit(1);
         }
         int xstatus;
         wait(&xstatus);
+        // kernelに殺されて-1を返すとOK
         if (xstatus != -1)  // did kernel kill child?
             exit(1);
     }
@@ -2850,7 +2927,7 @@ void sbrkfail(char* s)
 {
     enum
     {
-        BIG = 100 * 1024 * 1024
+        BIG = 100 * 1024 * 1024 // 100MiB
     };
     int i, xstatus;
     int fds[2];
@@ -2861,6 +2938,7 @@ void sbrkfail(char* s)
     int failed;
 
     failed = 0;
+    // pipeを作成
     if (pipe(fds) != 0)
     {
         printf("%s: pipe() failed\n", s);
@@ -2868,9 +2946,12 @@ void sbrkfail(char* s)
     }
     for (i = 0; i < sizeof(pids) / sizeof(pids[0]); i++)
     {
+        // プロセス生成
         if ((pids[i] = fork()) == 0)
         {
             // allocate a lot of memory
+            // 100MiBのヒープ領域拡張を行う
+            // エラーが返って来る
             if (sbrk(BIG - (uint64)sbrk(0)) == (char*)SBRK_ERROR)
                 write(fds[1], "0", 1);
             else
@@ -2880,10 +2961,13 @@ void sbrkfail(char* s)
         }
         if (pids[i] != -1)
         {
+            // pipeで0か1を受け取る
             read(fds[0], &scratch, 1);
+            // sbrkでエラーが返ってきた場合
             if (scratch == '0') failed = 1;
         }
     }
+    // sbrkでエラーが返ってこない場合（100MiBの拡張が可能）
     if (!failed)
     {
         printf("%s: no allocation failed; allocate more?\n", s);
@@ -2891,6 +2975,8 @@ void sbrkfail(char* s)
 
     // if those failed allocations freed up the pages they did allocate,
     // we'll be able to allocate here
+    // Page単位での拡張
+    // 拡張前のアドレス
     c = sbrk(PGSIZE);
     for (i = 0; i < sizeof(pids) / sizeof(pids[0]); i++)
     {
@@ -2898,6 +2984,7 @@ void sbrkfail(char* s)
         kill(pids[i]);
         wait(0);
     }
+    // 拡張失敗
     if (c == (char*)SBRK_ERROR)
     {
         printf("%s: failed sbrk leaked memory\n", s);
@@ -2914,6 +3001,7 @@ void sbrkfail(char* s)
     if (pid == 0)
     {
         // allocate a lot of memory. this should produce an error
+        // 大量のメモリサイズを拡張
         a = sbrk(10 * BIG);
         if (a == (char*)SBRK_ERROR)
         {
@@ -2932,8 +3020,11 @@ void sbrkarg(char* s)
     char* a;
     int fd, n;
 
+    // Page単位分拡張
     a = sbrk(PGSIZE);
+    // sbrkファイルを作成
     fd = open("sbrk", O_CREATE | O_WRONLY);
+    // sbrkファイルを削除
     unlink("sbrk");
     if (fd < 0)
     {
@@ -2948,7 +3039,9 @@ void sbrkarg(char* s)
     close(fd);
 
     // test writes to allocated memory
+    // 初期のヒープ領域の末尾アドレス + 1Page単位のアドレスが戻り値
     a = sbrk(PGSIZE);
+    // ヒープ領域に対してpipe
     if (pipe((int*)a) != 0)
     {
         printf("%s: pipe() failed\n", s);
@@ -2961,10 +3054,11 @@ void validatetest(char* s)
     int hi;
     uint64 p;
 
-    hi = 1100 * 1024;
+    hi = 1100 * 1024; // 1100KiB
     for (p = 0; p <= (uint)hi; p += PGSIZE)
     {
         // try to crash the kernel by passing in a bad string pointer
+        // 不正なポインタを渡してカーネルをクラッシュ
         if (link("nosuchfile", (char*)p) != -1)
         {
             printf("%s: link should not succeed\n", s);
@@ -2974,6 +3068,7 @@ void validatetest(char* s)
 }
 
 // does uninitialized data start out zero?
+// 要素数10000の配列の初期化
 char uninit[10000];
 void bsstest(char* s)
 {
@@ -2998,18 +3093,25 @@ void bigargtest(char* s)
 
     unlink("bigarg-ok");
     pid = fork();
+    // 子プロセスの処理
     if (pid == 0)
     {
+        // #define MAXARG       32  // max exec arguments
         static char* args[MAXARG];
         int i;
         char big[400];
+        // bigに' 'をそれぞれ代入
         memset(big, ' ', sizeof(big));
+        // 末尾はヌル文字('\0')
         big[sizeof(big) - 1] = '\0';
+        // 400 * 32のサイズ
         for (i = 0; i < MAXARG - 1; i++) args[i] = big;
         args[MAXARG - 1] = 0;
         // this exec() should fail (and return) because the
         // arguments are too large.
+        // 大きすぎる引数での実行
         exec("echo", args);
+        // execが成功したらここには到達しないが、失敗したら戻り値-1とともにここに到達
         fd = open("bigarg-ok", O_CREATE);
         close(fd);
         exit(0);
@@ -3022,6 +3124,7 @@ void bigargtest(char* s)
 
     wait(&xstatus);
     if (xstatus != 0) exit(xstatus);
+    // bigarg-okを開く事ができる
     fd = open("bigarg-ok", 0);
     if (fd < 0)
     {
@@ -3050,6 +3153,7 @@ void fsfull()
         name[4] = '0' + (nfiles % 10);
         name[5] = '\0';
         printf("writing %s\n", name);
+        // ファイルを作成
         int fd = open(name, O_CREATE | O_RDWR);
         if (fd < 0)
         {
@@ -3059,7 +3163,9 @@ void fsfull()
         int total = 0;
         while (1)
         {
+            // ブロックごとにデータを書き出す
             int cc = write(fd, buf, BSIZE);
+            // 限界まで書き込む
             if (cc < BSIZE) break;
             total += cc;
             fsblocks++;
@@ -3069,6 +3175,7 @@ void fsfull()
         if (total == 0) break;
     }
 
+    // fileの削除
     while (nfiles >= 0)
     {
         char name[64];
