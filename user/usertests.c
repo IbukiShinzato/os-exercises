@@ -1082,22 +1082,28 @@ void killstatus(char* s)
 
     for (int i = 0; i < 100; i++)
     {
+        // 子プロセス生成
         int pid1 = fork();
         if (pid1 < 0)
         {
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // 子プロセスの処理
         if (pid1 == 0)
         {
             while (1)
             {
+                // 子プロセスのpid
                 getpid();
             }
             exit(0);
         }
+        // 親プロセス1秒休止
         pause(1);
+        // 子プロセスのpidを削除
         kill(pid1);
+        // 子プロセスの終了を待機
         wait(&xst);
         if (xst != -1)
         {
@@ -1112,47 +1118,62 @@ void killstatus(char* s)
 void preempt(char* s)
 {
     int pid1, pid2, pid3;
+    // pipe用の配列
     int pfds[2];
 
+    // 子プロセス生成
     pid1 = fork();
     if (pid1 < 0)
     {
         printf("%s: fork failed", s);
         exit(1);
     }
+    // 子プロセス
     if (pid1 == 0)
         for (;;);
 
+    // 子プロセス生成
     pid2 = fork();
     if (pid2 < 0)
     {
         printf("%s: fork failed\n", s);
         exit(1);
     }
+    // 子プロセス
     if (pid2 == 0)
         for (;;);
 
+    // パイプの作成
     pipe(pfds);
+    // 子プロセス生成
     pid3 = fork();
     if (pid3 < 0)
     {
         printf("%s: fork failed\n", s);
         exit(1);
     }
+    // 子プロセス
     if (pid3 == 0)
     {
+        // 出口（Read用）をclose
         close(pfds[0]);
+        // 入口（Write用）にxを書き込む
         if (write(pfds[1], "x", 1) != 1) printf("%s: preempt write error", s);
+        // 入口（Write用）もclose
         close(pfds[1]);
+        // 無限ループ
         for (;;);
     }
 
+    // 入口（Write用）をclose
     close(pfds[1]);
+    // 親プロセスからpipeを経由して読み出す
     if (read(pfds[0], buf, sizeof(buf)) != 1)
     {
         printf("%s: preempt read error", s);
         return;
     }
+    // 出口（Read用）をclose
     close(pfds[0]);
     printf("kill... ");
     kill(pid1);
@@ -1171,15 +1192,18 @@ void exitwait(char* s)
 
     for (i = 0; i < 100; i++)
     {
+        // プロセス生成
         pid = fork();
         if (pid < 0)
         {
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // 親プロセス
         if (pid)
         {
             int xstate;
+            // 子プロセスのステータスコードが返ってくる
             if (wait(&xstate) != pid)
             {
                 printf("%s: wait wrong pid\n", s);
@@ -1191,6 +1215,8 @@ void exitwait(char* s)
                 exit(1);
             }
         }
+        // 子プロセス
+        // 子プロセスは0 ~ 99のステータスコードを返す
         else
         {
             exit(i);
@@ -1203,31 +1229,39 @@ void exitwait(char* s)
 // when it still has live children.
 void reparent(char* s)
 {
+    // 親プロセスのpid 
     int master_pid = getpid();
     for (int i = 0; i < 200; i++)
     {
+        // プロセス生成
         int pid = fork();
         if (pid < 0)
         {
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // 親プロセス
         if (pid)
         {
+            // 子プロセスが死ぬのを待つ
             if (wait(0) != pid)
             {
                 printf("%s: wait wrong pid\n", s);
                 exit(1);
             }
         }
+        // 子プロセス
         else
         {
+            // 孫プロセス生成
             int pid2 = fork();
+            // プロセスから親プロセスをkillできない
             if (pid2 < 0)
             {
                 kill(master_pid);
                 exit(1);
             }
+            // 孫プロセスはいるかもしれないが子プロセスが先に死ぬ
             exit(0);
         }
     }
@@ -1239,28 +1273,34 @@ void twochildren(char* s)
 {
     for (int i = 0; i < 1000; i++)
     {
+        // 子プロセスを生成
         int pid1 = fork();
         if (pid1 < 0)
         {
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // 子プロセスは即座に終了
         if (pid1 == 0)
         {
             exit(0);
         }
+        // 親プロセス
         else
         {
+            // 子プロセスを生成
             int pid2 = fork();
             if (pid2 < 0)
             {
                 printf("%s: fork failed\n", s);
                 exit(1);
             }
+            // 子プロセスは即座に終了
             if (pid2 == 0)
             {
                 exit(0);
             }
+            // 親プロセス
             else
             {
                 wait(0);
@@ -1278,29 +1318,37 @@ void forkfork(char* s)
         N = 2
     };
 
+    // 2回ループ
     for (int i = 0; i < N; i++)
     {
+        // 子プロセス生成
         int pid = fork();
         if (pid < 0)
         {
             printf("%s: fork failed", s);
             exit(1);
         }
+        // 子プロセス
         if (pid == 0)
         {
             for (int j = 0; j < 200; j++)
             {
+                // 孫プロセス生成
                 int pid1 = fork();
                 if (pid1 < 0)
                 {
                     exit(1);
                 }
+                // 孫プロセス
+                // 即座にexit
                 if (pid1 == 0)
                 {
                     exit(0);
                 }
+                // 子プロセスが孫プロセスを待機
                 wait(0);
             }
+            // 子プロセスの終了
             exit(0);
         }
     }
@@ -1308,6 +1356,7 @@ void forkfork(char* s)
     int xstatus;
     for (int i = 0; i < N; i++)
     {
+        // 親プロセスが子プロセスの終了を待機
         wait(&xstatus);
         if (xstatus != 0)
         {
@@ -1319,23 +1368,30 @@ void forkfork(char* s)
 
 void forkforkfork(char* s)
 {
+    // stopforkingを削除
     unlink("stopforking");
 
+    // 子プロセスを生成
     int pid = fork();
     if (pid < 0)
     {
         printf("%s: fork failed", s);
         exit(1);
     }
+    // 子プロセスの処理
     if (pid == 0)
     {
+        // 無限ループ
         while (1)
         {
+            // stopforkingファイルを開く
             int fd = open("stopforking", 0);
+            // ファイルが開けたら
             if (fd >= 0)
             {
                 exit(0);
             }
+            // さらにforkする
             if (fork() < 0)
             {
                 close(open("stopforking", O_CREATE | O_RDWR));
@@ -1345,8 +1401,11 @@ void forkforkfork(char* s)
         exit(0);
     }
 
+    // 親プロセスが2秒休止
     pause(20);  // two seconds
+    // 開いていたstopforkingファイルをclose
     close(open("stopforking", O_CREATE | O_RDWR));
+    // 子プロセスの終了を待つ
     wait(0);
     pause(10);  // one second
 }
@@ -1360,18 +1419,22 @@ void reparent2(char* s)
 {
     for (int i = 0; i < 800; i++)
     {
+        // 子プロセスを生成
         int pid1 = fork();
         if (pid1 < 0)
         {
             printf("fork failed\n");
             exit(1);
         }
+        // 子プロセス
         if (pid1 == 0)
         {
+            // 二つのプロセスを生成
             fork();
             fork();
             exit(0);
         }
+        // 子プロセスの終了を待機
         wait(0);
     }
 
@@ -1384,32 +1447,41 @@ void mem(char* s)
     void *m1, *m2;
     int pid;
 
+    // 子プロセスの処理
     if ((pid = fork()) == 0)
     {
         m1 = 0;
+        // 限界までメモリを確保
         while ((m2 = malloc(10001)) != 0)
         {
+            // m2にm1のポインタを代入 
             *(char**)m2 = m1;
+            // m1に一番先頭のポインタを代入
             m1 = m2;
         }
+        // メモリを全て解放するまで
         while (m1)
         {
             m2 = *(char**)m1;
             free(m1);
             m1 = m2;
         }
+        // m1に20KiBのメモリ領域を渡す？
         m1 = malloc(1024 * 20);
         if (m1 == 0)
         {
             printf("%s: couldn't allocate mem?!!\n", s);
             exit(1);
         }
+        // メモリ解放
         free(m1);
         exit(0);
     }
+    // 親プロセス
     else
     {
         int xstatus;
+        // 子プロセスの終了を待機
         wait(&xstatus);
         if (xstatus == -1)
         {
@@ -1417,6 +1489,7 @@ void mem(char* s)
             // so OK.
             exit(0);
         }
+        // 終了
         exit(xstatus);
     }
 }
@@ -1436,6 +1509,7 @@ void sharedfd(char* s)
     char buf[SZ];
 
     unlink("sharedfd");
+    // sharedfdを作成
     fd = open("sharedfd", O_CREATE | O_RDWR);
     if (fd < 0)
     {
@@ -1443,19 +1517,23 @@ void sharedfd(char* s)
         exit(1);
     }
     pid = fork();
+    // 子プロセスならc,親プロセスならpをbufに入れる？
     memset(buf, pid == 0 ? 'c' : 'p', sizeof(buf));
     for (i = 0; i < N; i++)
     {
+        // sharedfdにbufのデータを書き込む
         if (write(fd, buf, sizeof(buf)) != sizeof(buf))
         {
             printf("%s: write sharedfd failed\n", s);
             exit(1);
         }
     }
+    // 子プロセスなら終了
     if (pid == 0)
     {
         exit(0);
     }
+    // 親プロセスならwaitしてexit
     else
     {
         int xstatus;
@@ -1464,6 +1542,7 @@ void sharedfd(char* s)
     }
 
     close(fd);
+    // sharedfdを開く
     fd = open("sharedfd", 0);
     if (fd < 0)
     {
@@ -1471,6 +1550,7 @@ void sharedfd(char* s)
         exit(1);
     }
     nc = np = 0;
+    // cとpの数を数える
     while ((n = read(fd, buf, sizeof(buf))) > 0)
     {
         for (i = 0; i < sizeof(buf); i++)
@@ -1520,6 +1600,7 @@ void fourfiles(char* s)
 
         if (pid == 0)
         {
+            // ファイルを作成
             fd = open(fname, O_CREATE | O_RDWR);
             if (fd < 0)
             {
@@ -1527,19 +1608,23 @@ void fourfiles(char* s)
                 exit(1);
             }
 
+            // メモリ確保
             memset(buf, '0' + pi, SZ);
             for (i = 0; i < N; i++)
             {
+                // ファイルにデータを書き込む
                 if ((n = write(fd, buf, SZ)) != SZ)
                 {
                     printf("write failed %d\n", n);
                     exit(1);
                 }
             }
+            // 終了
             exit(0);
         }
     }
 
+    // 子プロセスの終了待機
     int xstatus;
     for (pi = 0; pi < NCHILD; pi++)
     {
@@ -1552,6 +1637,7 @@ void fourfiles(char* s)
         fname = names[i];
         fd = open(fname, 0);
         total = 0;
+        // ファイルに書き込みができているか
         while ((n = read(fd, buf, sizeof(buf))) > 0)
         {
             for (j = 0; j < n; j++)
@@ -1583,6 +1669,7 @@ void createdelete(char* s)
         NCHILD = 4
     };
     int pid, i, fd, pi;
+    // ファイル名
     char name[32];
 
     for (pi = 0; pi < NCHILD; pi++)
@@ -1594,20 +1681,25 @@ void createdelete(char* s)
             exit(1);
         }
 
+        // 子プロセス
         if (pid == 0)
         {
             name[0] = 'p' + pi;
             name[2] = '\0';
+            // 20回
             for (i = 0; i < N; i++)
             {
                 name[1] = '0' + i;
+                // ファイルを作成
                 fd = open(name, O_CREATE | O_RDWR);
                 if (fd < 0)
                 {
                     printf("%s: create failed\n", s);
                     exit(1);
                 }
+                // ファイルを閉じる
                 close(fd);
+                // iが1以上の偶数
                 if (i > 0 && (i % 2) == 0)
                 {
                     name[1] = '0' + (i / 2);
@@ -1651,6 +1743,7 @@ void createdelete(char* s)
         }
     }
 
+    // 後処理
     for (i = 0; i < N; i++)
     {
         for (pi = 0; pi < NCHILD; pi++)
@@ -1671,41 +1764,51 @@ void unlinkread(char* s)
     };
     int fd, fd1;
 
+    // unlinkreadファイルを作成
     fd = open("unlinkread", O_CREATE | O_RDWR);
     if (fd < 0)
     {
         printf("%s: create unlinkread failed\n", s);
         exit(1);
     }
+    // helloと書き出す
     write(fd, "hello", SZ);
     close(fd);
 
+    // 読み取りモードでopen
     fd = open("unlinkread", O_RDWR);
     if (fd < 0)
     {
         printf("%s: open unlinkread failed\n", s);
         exit(1);
     }
+    // 削除する
     if (unlink("unlinkread") != 0)
     {
         printf("%s: unlink unlinkread failed\n", s);
         exit(1);
     }
+    // closeしていない
 
+    // 再度unlinkreadファイルを作成する
     fd1 = open("unlinkread", O_CREATE | O_RDWR);
+    // yyyと書き出す
     write(fd1, "yyy", 3);
     close(fd1);
 
+    // このとき読み取れるのはhelloの5Byte 
     if (read(fd, buf, sizeof(buf)) != SZ)
     {
         printf("%s: unlinkread read failed", s);
         exit(1);
     }
+    // helloなのでbuf[0]はh 
     if (buf[0] != 'h')
     {
         printf("%s: unlinkread wrong data\n", s);
         exit(1);
     }
+    // 10Byte書き込み可能
     if (write(fd, buf, 10) != 10)
     {
         printf("%s: unlinkread write failed\n", s);
@@ -1726,19 +1829,23 @@ void linktest(char* s)
     unlink("lf1");
     unlink("lf2");
 
+    // lf1を作成
     fd = open("lf1", O_CREATE | O_RDWR);
     if (fd < 0)
     {
         printf("%s: create lf1 failed\n", s);
         exit(1);
     }
+    // helloを書きこむ
     if (write(fd, "hello", SZ) != SZ)
     {
         printf("%s: write lf1 failed\n", s);
         exit(1);
     }
+    // 閉じる
     close(fd);
 
+    // lf1 -> lf2にハードリンク
     if (link("lf1", "lf2") < 0)
     {
         printf("%s: link lf1 lf2 failed\n", s);
@@ -1746,18 +1853,21 @@ void linktest(char* s)
     }
     unlink("lf1");
 
+    // lf1はunlinkされたので開けない
     if (open("lf1", 0) >= 0)
     {
         printf("%s: unlinked lf1 but it is still there!\n", s);
         exit(1);
     }
 
+    // lf2は存在するから開ける
     fd = open("lf2", 0);
     if (fd < 0)
     {
         printf("%s: open lf2 failed\n", s);
         exit(1);
     }
+    // lf2から読み込むことは可能
     if (read(fd, buf, sizeof(buf)) != SZ)
     {
         printf("%s: read lf2 failed\n", s);
@@ -1765,6 +1875,7 @@ void linktest(char* s)
     }
     close(fd);
 
+    // 自分自身のリンクはできない
     if (link("lf2", "lf2") >= 0)
     {
         printf("%s: link lf2 lf2 succeeded! oops\n", s);
@@ -1772,12 +1883,14 @@ void linktest(char* s)
     }
 
     unlink("lf2");
+    // 存在しないファイルからのリンクもできない
     if (link("lf2", "lf1") >= 0)
     {
         printf("%s: link non-existent succeeded! oops\n", s);
         exit(1);
     }
 
+    // ディレクトリからのリンクもできない
     if (link(".", "lf1") >= 0)
     {
         printf("%s: link . lf1 succeeded! oops\n", s);
@@ -1803,21 +1916,28 @@ void concreate(char* s)
 
     file[0] = 'C';
     file[2] = '\0';
+    // 0 ~ 39の40個のファイル
     for (i = 0; i < N; i++)
     {
         file[1] = '0' + i;
+        // fileの削除
         unlink(file);
+        // 子プロセス生成
         pid = fork();
+        // 親プロセス, iが1,4,7,...
         if (pid && (i % 3) == 1)
         {
+            // C0とファイルをリンク
             link("C0", file);
         }
+        // 子プロセスの処理,iが1,6,11...
         else if (pid == 0 && (i % 5) == 1)
         {
             link("C0", file);
         }
         else
         {
+            // ファイルを作成して閉じる
             fd = open(file, O_CREATE | O_RDWR);
             if (fd < 0)
             {
@@ -1826,6 +1946,7 @@ void concreate(char* s)
             }
             close(fd);
         }
+        // 子プロセス
         if (pid == 0)
         {
             exit(0);
@@ -1838,12 +1959,16 @@ void concreate(char* s)
         }
     }
 
+    // メモリ確保
     memset(fa, 0, sizeof(fa));
+    // current dirを開く
     fd = open(".", 0);
     n = 0;
     while (read(fd, &de, sizeof(de)) > 0)
     {
+        // 空のエントリはcontinue
         if (de.inum == 0) continue;
+        // ファイル名がCから始まっているかのチェック
         if (de.name[0] == 'C' && de.name[2] == '\0')
         {
             i = de.name[1] - '0';
@@ -1852,6 +1977,7 @@ void concreate(char* s)
                 printf("%s: concreate weird file %s\n", s, de.name);
                 exit(1);
             }
+            // 同じファイルが出てきたらエラー
             if (fa[i])
             {
                 printf("%s: concreate duplicate file %s\n", s, de.name);
@@ -1863,6 +1989,7 @@ void concreate(char* s)
     }
     close(fd);
 
+    // ファイルが40個存在するか
     if (n != N)
     {
         printf("%s: concreate not enough files in directory listing\n", s);
@@ -1878,6 +2005,7 @@ void concreate(char* s)
             printf("%s: fork failed\n", s);
             exit(1);
         }
+        // ファイルを6回連続で開く
         if (((i % 3) == 0 && pid == 0) || ((i % 3) == 1 && pid != 0))
         {
             close(open(file, 0));
@@ -1887,6 +2015,7 @@ void concreate(char* s)
             close(open(file, 0));
             close(open(file, 0));
         }
+        // ファイルを6回連続で削除
         else
         {
             unlink(file);
@@ -1909,7 +2038,9 @@ void linkunlink(char* s)
 {
     int pid, i;
 
+    // xを削除
     unlink("x");
+    // create process
     pid = fork();
     if (pid < 0)
     {
@@ -1917,10 +2048,12 @@ void linkunlink(char* s)
         exit(1);
     }
 
+    // 親プロセスなら1、子プロセスなら97
     unsigned int x = (pid ? 1 : 97);
     for (i = 0; i < 100; i++)
     {
         x = x * 1103515245 + 12345;
+        // ファイルと閉じるか、link、削除のどれか
         if ((x % 3) == 0)
         {
             close(open("x", O_RDWR | O_CREATE));
@@ -1935,6 +2068,7 @@ void linkunlink(char* s)
         }
     }
 
+    // 子プロセスを待機
     if (pid)
         wait(0);
     else
@@ -1946,42 +2080,50 @@ void subdir(char* s)
     int fd, cc;
 
     unlink("ff");
+    // dd dirを作成
     if (mkdir("dd") != 0)
     {
         printf("%s: mkdir dd failed\n", s);
         exit(1);
     }
 
+    // dd内にffファイルを作成
     fd = open("dd/ff", O_CREATE | O_RDWR);
     if (fd < 0)
     {
         printf("%s: create dd/ff failed\n", s);
         exit(1);
     }
+    // dd/ffにffを書き込む
     write(fd, "ff", 2);
     close(fd);
 
+    // ddをunlinkしようと試みるが、ffファイルがあるので失敗
     if (unlink("dd") >= 0)
     {
         printf("%s: unlink dd (non-empty dir) succeeded!\n", s);
         exit(1);
     }
 
+    // /dd/ddディレクトリを作成
     if (mkdir("/dd/dd") != 0)
     {
         printf("%s: subdir mkdir dd/dd failed\n", s);
         exit(1);
     }
 
+    // dd/dd内にffファイルを作成
     fd = open("dd/dd/ff", O_CREATE | O_RDWR);
     if (fd < 0)
     {
         printf("%s: create dd/dd/ff failed\n", s);
         exit(1);
     }
+    // dd/dd/ffファイルにFFを書き込む
     write(fd, "FF", 2);
     close(fd);
 
+    // ffが書かれている方のffファイルを開く
     fd = open("dd/dd/../ff", 0);
     if (fd < 0)
     {
@@ -1996,50 +2138,59 @@ void subdir(char* s)
     }
     close(fd);
 
+    // dd/dd/ffファイルをdd/dd/ffffファイルにハードリンク
     if (link("dd/dd/ff", "dd/dd/ffff") != 0)
     {
         printf("%s: link dd/dd/ff dd/dd/ffff failed\n", s);
         exit(1);
     }
 
+    // dd/dd/ffファイルを削除
     if (unlink("dd/dd/ff") != 0)
     {
         printf("%s: unlink dd/dd/ff failed\n", s);
         exit(1);
     }
+    // 存在しないファイルなので開けない
     if (open("dd/dd/ff", O_RDONLY) >= 0)
     {
         printf("%s: open (unlinked) dd/dd/ff succeeded\n", s);
         exit(1);
     }
 
+    // ddディレクトリに移動
     if (chdir("dd") != 0)
     {
         printf("%s: chdir dd failed\n", s);
         exit(1);
     }
+    // ./ddに移動
     if (chdir("dd/../../dd") != 0)
     {
         printf("%s: chdir dd/../../dd failed\n", s);
         exit(1);
     }
+    // ./ddに移動
     if (chdir("dd/../../../dd") != 0)
     {
         printf("%s: chdir dd/../../../dd failed\n", s);
         exit(1);
     }
+    // .に移動
     if (chdir("./..") != 0)
     {
         printf("%s: chdir ./.. failed\n", s);
         exit(1);
     }
 
+    // linkされたファイルを開く
     fd = open("dd/dd/ffff", 0);
     if (fd < 0)
     {
         printf("%s: open dd/dd/ffff failed\n", s);
         exit(1);
     }
+    // FFが書かれている
     if (read(fd, buf, sizeof(buf)) != 2)
     {
         printf("%s: read dd/dd/ffff wrong len\n", s);
@@ -2047,27 +2198,32 @@ void subdir(char* s)
     }
     close(fd);
 
+    // unlinkされたファイルを開くことはできない
     if (open("dd/dd/ff", O_RDONLY) >= 0)
     {
         printf("%s: open (unlinked) dd/dd/ff succeeded!\n", s);
         exit(1);
     }
 
+    // そもそもffディレクトリがないので失敗
     if (open("dd/ff/ff", O_CREATE | O_RDWR) >= 0)
     {
         printf("%s: create dd/ff/ff succeeded!\n", s);
         exit(1);
     }
+    // xxディレクトリがないので失敗
     if (open("dd/xx/ff", O_CREATE | O_RDWR) >= 0)
     {
         printf("%s: create dd/xx/ff succeeded!\n", s);
         exit(1);
     }
+    // ddは存在する
     if (open("dd", O_CREATE) >= 0)
     {
         printf("%s: create dd succeeded!\n", s);
         exit(1);
     }
+    // 書き込みはできない
     if (open("dd", O_RDWR) >= 0)
     {
         printf("%s: open dd rdwr succeeded!\n", s);
@@ -2164,6 +2320,7 @@ void bigwrite(char* s)
     unlink("bigwrite");
     for (sz = 499; sz < (MAXOPBLOCKS + 2) * BSIZE; sz += 471)
     {
+        // bifwriteファイルを作成
         fd = open("bigwrite", O_CREATE | O_RDWR);
         if (fd < 0)
         {
@@ -2195,6 +2352,7 @@ void bigfile(char* s)
     int fd, i, total, cc;
 
     unlink("bigfile.dat");
+    // bigfile.datを作成
     fd = open("bigfile.dat", O_CREATE | O_RDWR);
     if (fd < 0)
     {
@@ -2203,6 +2361,7 @@ void bigfile(char* s)
     }
     for (i = 0; i < N; i++)
     {
+        // 600Byte分メモリを確保
         memset(buf, i, SZ);
         if (write(fd, buf, SZ) != SZ)
         {
@@ -2212,6 +2371,7 @@ void bigfile(char* s)
     }
     close(fd);
 
+    // 再度開く
     fd = open("bigfile.dat", 0);
     if (fd < 0)
     {
@@ -2219,6 +2379,7 @@ void bigfile(char* s)
         exit(1);
     }
     total = 0;
+    // bigfile.datからデータを読み終えるまで
     for (i = 0;; i++)
     {
         cc = read(fd, buf, SZ / 2);
@@ -2228,11 +2389,13 @@ void bigfile(char* s)
             exit(1);
         }
         if (cc == 0) break;
+        // 正しくデータを読み取れていないとき
         if (cc != SZ / 2)
         {
             printf("%s: short read bigfile\n", s);
             exit(1);
         }
+        // ファイルのデータが違っているとき
         if (buf[0] != i / 2 || buf[SZ / 2 - 1] != i / 2)
         {
             printf("%s: read bigfile wrong data\n", s);
