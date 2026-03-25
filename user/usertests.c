@@ -3195,12 +3195,14 @@ void fsfull()
 void argptest(char* s)
 {
     int fd;
+    // initファイルを開く（読み取りモード）
     fd = open("init", O_RDONLY);
     if (fd < 0)
     {
         printf("%s: open failed\n", s);
         exit(1);
     }
+    // ヒープ領域の末尾アドレスの一つ前からデータを1つinitに入れる 
     read(fd, sbrk(0) - 1, -1);
     close(fd);
 }
@@ -3213,11 +3215,19 @@ void stacktest(char* s)
     int xstatus;
 
     pid = fork();
+    // 子プロセス
     if (pid == 0)
     {
+        // スタックポインタ（sp）を取得
+        // スタックの先頭アドレス（一番下のアドレス）
         char* sp = (char*)r_sp();
+        // #define USERSTACK    1     // user stack pages
+        // #define PGSIZE       4096  // bytes per page
+        // 1ページ分のアドレス下に下げる
         sp -= USERSTACK * PGSIZE;
         // the *sp should cause a trap.
+        // spのデータを読み込む
+        // kernelに殺されて-1を返す
         printf("%s: stacktest: read below stack %d\n", s, *sp);
         exit(1);
     }
@@ -3248,6 +3258,7 @@ void nowrite(char* s)
         if (pid == 0)
         {
             volatile int* addr = (int*)addrs[ai];
+            // 指定したアドレス（カーネル領域など）に対して10を書き込む
             *addr = 10;
             printf("%s: write to %p did not fail!\n", s, addr);
             exit(0);
@@ -3258,6 +3269,7 @@ void nowrite(char* s)
             exit(1);
         }
         wait(&xstatus);
+        // 子プロセスは-1を返す
         if (xstatus == 0)
         {
             // kernel did not kill child!
@@ -3270,12 +3282,16 @@ void nowrite(char* s)
 // regression test. copyin(), copyout(), and copyinstr() used to cast
 // the virtual page address to uint, which (with certain wild system
 // call arguments) resulted in a kernel page faults.
+// 仮想ページアドレス
 void* big = (void*)0xeaeb0b5b00002f5e;
 void pgbug(char* s)
 {
     char* argv[1];
+    // 引数の終了
     argv[0] = 0;
+    // bigアドレスを直接叩く
     exec(big, argv);
+    // pipeで二つのfdを割り振る
     pipe(big);
 
     exit(0);
@@ -3294,10 +3310,12 @@ void sbrkbugs(char* s)
     }
     if (pid == 0)
     {
+        // ヒープ領域の末端アドレス
         int sz = (uint64)sbrk(0);
         // free all user memory; there used to be a bug that
         // would not adjust p->sz correctly in this case,
         // causing exit() to panic.
+        // 全てのユーザメモリを解放する 
         sbrk(-sz);
         // user page fault here.
         exit(0);
@@ -3312,10 +3330,12 @@ void sbrkbugs(char* s)
     }
     if (pid == 0)
     {
+        // ヒープ領域の末端アドレス
         int sz = (uint64)sbrk(0);
         // set the break to somewhere in the very first
         // page; there used to be a bug that would incorrectly
         // free the first page.
+        // プロセスサイズを3500バイト(1ページ未満）にする
         sbrk(-(sz - 3500));
         exit(0);
     }
@@ -3329,12 +3349,14 @@ void sbrkbugs(char* s)
     }
     if (pid == 0)
     {
+        // 区切りページの中央に設定
         // set the break in the middle of a page.
         sbrk((10 * PGSIZE + 2048) - (uint64)sbrk(0));
 
         // reduce the break a bit, but not enough to
         // cause a page to be freed. this used to cause
         // a panic.
+        // ページに対して極小な領域を解放
         sbrk(-10);
 
         exit(0);
@@ -3349,21 +3371,32 @@ void sbrkbugs(char* s)
 // still copyin() from addresses in the last page?
 void sbrklast(char* s)
 {
+    // ヒープ領域末尾アドレス
     uint64 top = (uint64)sbrk(0);
+    // page単位でアラインメント
     if ((top % PGSIZE) != 0) sbrk(PGSIZE - (top % PGSIZE));
+    // 1ページ分拡張
     sbrk(PGSIZE);
+    // 極小なサイズ拡大、縮小
     sbrk(10);
     sbrk(-20);
+    // 再度末尾アドレスを取得
     top = (uint64)sbrk(0);
+    // 末尾から64下のところにxを書き込む
     char* p = (char*)(top - 64);
     p[0] = 'x';
     p[1] = '\0';
+    // xというファイルを作成
     int fd = open(p, O_RDWR | O_CREATE);
+    // xを書き込む
     write(fd, p, 1);
     close(fd);
+    // xファイルを開く
     fd = open(p, O_RDWR);
     p[0] = '\0';
+    // pの先頭をNULL文字にする
     read(fd, p, 1);
+    // fdの時点ではxが残っている
     if (p[0] != 'x') exit(1);
 }
 
@@ -3371,8 +3404,13 @@ void sbrklast(char* s)
 // negative arguments?
 void sbrk8000(char* s)
 {
+    // unsignedだと大きい正の整数だが、signedだと負の整数になる
+    // つまり拡張だけでなく縮小の場合もある
     sbrk(0x80000004);
+    // volatileは余計な最適化をしないようにする命令
+    // ヒープ領域の末尾アドレス
     volatile char* top = sbrk(0);
+    // 末尾アドレスの一つ前のアドレスに末尾アドレスを書き込む
     *(top - 1) = *(top - 1) + 1;
 }
 
@@ -3383,6 +3421,8 @@ void badarg(char* s)
     for (int i = 0; i < 50000; i++)
     {
         char* argv[2];
+        // 引数にデタラメなアドレスを入れる
+        // ここで失敗
         argv[0] = (char*)0xffffffff;
         argv[1] = 0;
         exec("echo", argv);
@@ -3391,7 +3431,7 @@ void badarg(char* s)
     exit(0);
 }
 
-#define REGION_SZ (1024 * 1024 * 1024)
+#define REGION_SZ (1024 * 1024 * 1024) // 1GiB
 
 // Touch a page every 64 pages, which with lazy allocation
 // causes one page to be allocated.
@@ -3399,6 +3439,7 @@ void lazy_alloc(char* s)
 {
     char *i, *prev_end, *new_end;
 
+    // 仮想アドレスが増えるだけで、物理アドレスはまだ割り当てられていない
     prev_end = sbrklazy(REGION_SZ);
     if (prev_end == (char*)SBRK_ERROR)
     {
@@ -3407,10 +3448,12 @@ void lazy_alloc(char* s)
     }
     new_end = prev_end + REGION_SZ;
 
+    // 拡張した領域に触れていく
     for (i = prev_end + PGSIZE; i < new_end; i += 64 * PGSIZE) *(char**)i = i;
 
     for (i = prev_end + PGSIZE; i < new_end; i += 64 * PGSIZE)
     {
+        // 先ほど書き込んだ値が正しく読み取れるか
         if (*(char**)i != i)
         {
             printf("failed to read value from memory\n");
@@ -3429,14 +3472,17 @@ void lazy_unmap(char* s)
     int pid;
     char *i, *prev_end, *new_end;
 
+    // 仮想アドレスだけ1GiB拡張
     prev_end = sbrklazy(REGION_SZ);
     if (prev_end == (char*)SBRK_ERROR)
     {
         printf("sbrklazy() failed\n");
         exit(1);
     }
+    // 拡張前のアドレス + 1GiB
     new_end = prev_end + REGION_SZ;
 
+    // 仮想アドレスを呼び出す
     for (i = prev_end + PGSIZE; i < new_end; i += PGSIZE * PGSIZE) *(char**)i = i;
 
     for (i = prev_end + PGSIZE; i < new_end; i += PGSIZE * PGSIZE)
@@ -3449,7 +3495,9 @@ void lazy_unmap(char* s)
         }
         else if (pid == 0)
         {
+            // 逆に仮想アドレスを縮小させる
             sbrklazy(-1L * REGION_SZ);
+            // 仮想アドレスがmapされていない範囲外のアドレスにアクセスして-1を返す
             *(char**)i = i;
             exit(0);
         }
@@ -3472,7 +3520,9 @@ void lazy_copy(char* s)
 {
     // copyinstr on lazy page
     {
+        // ヒープ領域の末尾アドレス
         char* p = sbrk(0);
+        // 4 * 4KiB = 16KiBの仮想アドレス領域拡張
         sbrklazy(4 * PGSIZE);
         open(p + 8192, 0);
     }
@@ -3493,24 +3543,28 @@ void lazy_copy(char* s)
     };
     for (int i = 0; i < sizeof(bad) / sizeof(bad[0]); i++)
     {
+        // READMEを開く
         int fd = open("README", 0);
         if (fd < 0)
         {
             printf("cannot open README\n");
             exit(1);
         }
+        // READMEの内容を指定したアドレスに書き込む
         if (read(fd, (char*)bad[i], 512) >= 0)
         {
             printf("read succeeded\n");
             exit(1);
         }
         close(fd);
+        // junkファイルを作成
         fd = open("junk", O_CREATE | O_RDWR | O_TRUNC);
         if (fd < 0)
         {
             printf("cannot open junk\n");
             exit(1);
         }
+        // 指定したアドレスのデータをjunkファイルに書き出す
         if (write(fd, (char*)bad[i], 512) >= 0)
         {
             printf("write succeeded\n");
@@ -3525,9 +3579,11 @@ void lazy_copy(char* s)
 void lazy_sbrk(char* s)
 {
     // sbrk() takes just int, so take 2^30-sized steps towards MAXVA
+    // ヒープ領域末尾アドレス
     char* p = sbrk(0);
     while ((uint64)p < MAXVA - (1 << 30))
     {
+        // 2^30ずつ仮想アドレスを書くとゆ
         p = sbrklazy(1 << 30);
         if (p < 0)
         {
@@ -3535,6 +3591,7 @@ void lazy_sbrk(char* s)
             exit(1);
         }
 
+        // ここではアクセスしていないので変化なし
         p = sbrklazy(0);
     }
 
@@ -3547,6 +3604,7 @@ void lazy_sbrk(char* s)
         exit(1);
     }
 
+    // 4KiB拡張
     p = sbrk(PGSIZE);
     if (p < 0 || (uint64)p != TRAPFRAME - PGSIZE)
     {
@@ -3555,12 +3613,14 @@ void lazy_sbrk(char* s)
     }
 
     p[0] = 1;
+    // 仮想領域にアクセス
     if (p[1] != 0)
     {
         printf("sbrk() returned non-zero-filled memory\n");
         exit(1);
     }
 
+    // 1Byte拡張
     p = sbrk(1);
     if ((uint64)p != -1)
     {
@@ -3568,6 +3628,7 @@ void lazy_sbrk(char* s)
         exit(1);
     }
 
+    // 仮想領域1Byte拡張
     p = sbrklazy(1);
     if ((uint64)p != -1)
     {
