@@ -1,3 +1,4 @@
+#include "kernel/types.h"
 #include "kernel/fcntl.h"
 #include "kernel/fs.h"
 #include "kernel/memlayout.h"
@@ -5,7 +6,6 @@
 #include "kernel/riscv.h"
 #include "kernel/stat.h"
 #include "kernel/syscall.h"
-#include "kernel/types.h"
 #include "user/user.h"
 
 //
