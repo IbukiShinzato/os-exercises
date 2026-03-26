@@ -3727,6 +3727,7 @@ void bigdir(char* s)
 
     unlink("bd");
 
+    // bdファイルを作成
     fd = open("bd", O_CREATE);
     if (fd < 0)
     {
@@ -3735,12 +3736,14 @@ void bigdir(char* s)
     }
     close(fd);
 
+    // 0 ~ 499
     for (i = 0; i < N; i++)
     {
         name[0] = 'x';
         name[1] = '0' + (i / 64);
         name[2] = '0' + (i % 64);
         name[3] = '\0';
+        // ファイルをハードリンク
         if (link("bd", name) != 0)
         {
             printf("%s: bigdir i=%d link(bd, %s) failed\n", s, i, name);
@@ -3748,6 +3751,7 @@ void bigdir(char* s)
         }
     }
 
+    // 作成したファイルを削除
     unlink("bd");
     for (i = 0; i < N; i++)
     {
@@ -3772,6 +3776,7 @@ void manywrites(char* s)
 
     for (int ci = 0; ci < nchildren; ci++)
     {
+        // プロセス生成
         int pid = fork();
         if (pid < 0)
         {
@@ -3779,6 +3784,7 @@ void manywrites(char* s)
             exit(1);
         }
 
+        // 子プロセス
         if (pid == 0)
         {
             char name[3];
@@ -3791,6 +3797,7 @@ void manywrites(char* s)
             {
                 for (int i = 0; i < ci + 1; i++)
                 {
+                    // ファイルを作成
                     int fd = open(name, O_CREATE | O_RDWR);
                     if (fd < 0)
                     {
@@ -3798,6 +3805,7 @@ void manywrites(char* s)
                         exit(1);
                     }
                     int sz = sizeof(buf);
+                    // ファイルにデータを書き込む
                     int cc = write(fd, buf, sz);
                     if (cc != sz)
                     {
@@ -3830,28 +3838,34 @@ void manywrites(char* s)
 // the number of free blocks. this test takes a long time.
 void badwrite(char* s)
 {
+    // ディスクの空きブロック数より少し多い
     int assumed_free = 600;
 
     unlink("junk");
     for (int i = 0; i < assumed_free; i++)
     {
+        // ファイルの作成
         int fd = open("junk", O_CREATE | O_WRONLY);
         if (fd < 0)
         {
             printf("open junk failed\n");
             exit(1);
         }
+        // 無効なアドレスから1Byte書き込もうとする
+        // 当然失敗する
         write(fd, (char*)0xffffffffffL, 1);
         close(fd);
         unlink("junk");
     }
 
+    // ファイルを作成する
     int fd = open("junk", O_CREATE | O_WRONLY);
     if (fd < 0)
     {
         printf("open junk failed\n");
         exit(1);
     }
+    // xを書き込む
     if (write(fd, "x", 1) != 1)
     {
         printf("write failed\n");
@@ -3876,22 +3890,28 @@ void execout(char* s)
             printf("fork failed\n");
             exit(1);
         }
+        // 子プロセスの処理
         else if (pid == 0)
         {
             // allocate all of memory.
             while (1)
             {
+                // ヒープ領域をページ単位で限界まで拡張
                 char* a = sbrk(PGSIZE);
                 if (a == SBRK_ERROR) break;
+                // ページ単位ごとに1を書き込む
                 *(a + PGSIZE - 1) = 1;
             }
 
             // free a few pages, in order to let exec() make some
             // progress.
+            // ヒープ領域を解放
             for (int i = 0; i < avail; i++) sbrk(-PGSIZE);
 
+            // 標準出力をclose
             close(1);
             char* args[] = {"echo", "x", 0};
+            // echo x を実行
             exec("echo", args);
             exit(0);
         }
@@ -3921,6 +3941,7 @@ void diskfull(char* s)
         name[3] = '0' + fi;
         name[4] = '\0';
         unlink(name);
+        // ファイル作成
         int fd = open(name, O_CREATE | O_RDWR | O_TRUNC);
         if (fd < 0)
         {
@@ -3956,16 +3977,19 @@ void diskfull(char* s)
         name[3] = '0' + (i % 32);
         name[4] = '\0';
         unlink(name);
+        // file作成
         int fd = open(name, O_CREATE | O_RDWR | O_TRUNC);
         if (fd < 0) break;
         close(fd);
     }
 
     // this mkdir() is expected to fail.
+    // すでに作成しているので失敗
     if (mkdir("diskfulldir") == 0) printf("%s: mkdir(diskfulldir) unexpectedly succeeded!\n", s);
 
     unlink("diskfulldir");
 
+    // ファイルの削除
     for (int i = 0; i < nzz; i++)
     {
         char name[32];
@@ -3991,6 +4015,7 @@ void diskfull(char* s)
 
 void outofinodes(char* s)
 {
+    // inodeの最大容量
     int nzz = 32 * 32;
     for (int i = 0; i < nzz; i++)
     {
@@ -4001,6 +4026,7 @@ void outofinodes(char* s)
         name[3] = '0' + (i % 32);
         name[4] = '\0';
         unlink(name);
+        // ファイルを作成
         int fd = open(name, O_CREATE | O_RDWR | O_TRUNC);
         if (fd < 0)
         {
@@ -4010,6 +4036,7 @@ void outofinodes(char* s)
         close(fd);
     }
 
+    // ファイルの削除
     for (int i = 0; i < nzz; i++)
     {
         char name[32];
