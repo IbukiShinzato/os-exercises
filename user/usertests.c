@@ -29,6 +29,7 @@ char buf[BUFSZ];
 
 // what if you pass ridiculous pointers to system calls
 // that read user memory with copyin?
+// ユーザが不正なメモリアドレスをカーネルに渡したときに正しくエラーを返してシステムを守れるか
 void copyin(char* s)
 {
     // 指定したアドレスの一覧
@@ -94,6 +95,7 @@ void copyin(char* s)
 
 // what if you pass ridiculous pointers to system calls
 // that write user memory with copyout?
+// ユーザが不正なメモリアドレスに対してデータを書き込もうとするがそれを正しくエラーを返してシステムを守れるか 
 void copyout(char* s)
 {
     uint64 addrs[] = {0LL,          0x80000000LL, 0x3fffffe000,
@@ -132,7 +134,7 @@ void copyout(char* s)
             printf("pipe write failed\n");
             exit(1);
         }
-        // firstの方で、指定したアドレスのデータを読み込む
+        // パイプからデータを読み出し、指定したアドレスを書き込む
         n = read(fds[0], (void*)addr, 8192);
         if (n > 0)
         {
@@ -145,6 +147,7 @@ void copyout(char* s)
 }
 
 // what if you pass ridiculous string pointers to system calls?
+// 不正なアドレスからファイルとしてopen()しようとするが、正しくエラーを返すことができるか
 void copyinstr1(char* s)
 {
     uint64 addrs[] = {0x80000000LL, 0x3fffffe000, 0x3ffffff000, 0x4000000000, 0xffffffffffffffff};
@@ -166,6 +169,7 @@ void copyinstr1(char* s)
 // what if a string system call argument is exactly the size
 // of the kernel buffer it is copied into, so that the null
 // would fall just beyond the end of the kernel buffer?
+// システムコールの引数（ファイル名やargv）が、カーネル側の許容バッファサイズを超えた際に、正しくエラーとして検知できるかの確認
 void copyinstr2(char* s)
 {
     // bufferを作成(サイズは128 + 1)
@@ -254,6 +258,7 @@ void copyinstr2(char* s)
 }
 
 // what if a string argument crosses over the end of last user page?
+// 拡張された使用範囲内のメモリと範囲外のメモリの境界線でのメモリ使用により、境界外にアクセスした時に正しくエラーを返せるか
 void copyinstr3(char* s)
 {
     // ヒープ領域を8KiB(2ページ分)拡張する
@@ -315,6 +320,7 @@ void copyinstr3(char* s)
 
 // See if the kernel refuses to read/write user memory that the
 // application doesn't have anymore, because it returned it.
+// 解放した後のメモリアドレスに対して書き込んだ時エラーを返すことができるか
 void rwsbrk(char* s)
 {
     int fd, n;
@@ -379,6 +385,7 @@ void rwsbrk(char* s)
 }
 
 // test O_TRUNC.
+// O_TRUNCフラグにより、ファイルの中身が空になっているか、offsetは書くfdによって生合成が保たれいてるか
 void truncate1(char* s)
 {
     char buf[32];
@@ -457,6 +464,7 @@ void truncate1(char* s)
 // this causes a write at an offset beyond the end of the file.
 // such writes fail on xv6 (unlike POSIX) but at least
 // they don't crash.
+// O_TRUNCによってファイルの中身が空になりoffsetがずれた状態で書き込み、クラッシュせずにエラーを返せるか
 void truncate2(char* s)
 {
     unlink("truncfile");
@@ -483,6 +491,8 @@ void truncate2(char* s)
     close(fd2);
 }
 
+// 複数プロセス間でファイルを読み書きを大量に行うが、排他的処理が正しく行えているか
+// 親プロセスがファイルの中身を空にして3Byte書こうとするが、子プロセスはそのまま10Byte書こうとする時に競合を起こさずに書き込めるか
 void truncate3(char* s)
 {
     int pid, xstatus;
@@ -550,6 +560,7 @@ void truncate3(char* s)
 }
 
 // does chdir() call iput(p->cwd) in a transaction?
+// 参照カウンタが0でないディレクトリを削除されないように制御できるか
 void iputtest(char* s)
 {
     // iputdirディレクトリを作成
@@ -580,6 +591,8 @@ void iputtest(char* s)
 }
 
 // does exit() call iput(p->cwd) in a transaction?
+// プロセスを生成して、参照されているディレクトリを削除しようとするが、カーネルがエラーを返すことができるか
+// i-nodeはプロセスが終了して参照が外れた時に初めてunlinkできるようになる
 void exitiputtest(char* s)
 {
     int pid, xstatus;
@@ -627,6 +640,7 @@ void exitiputtest(char* s)
 //      for(i = 0; i < 10000; i++)
 //        yield();
 //    }
+// ディレクトリを書き込みモードで開こうとする不正な操作を、カーネルが正しく拒否できるかを検証する
 void openiputtest(char* s)
 {
     int pid, xstatus;
@@ -669,7 +683,7 @@ void openiputtest(char* s)
 }
 
 // simple file system tests
-
+// 存在しないファイルをO_CREATEフラグなしで開く処理を弾く
 void opentest(char* s)
 {
     int fd;
@@ -693,6 +707,7 @@ void opentest(char* s)
     }
 }
 
+// 大量のファイル書き込みを行い全て正しくデータとして保存されているか 
 void writetest(char* s)
 {
     int fd;
@@ -751,6 +766,7 @@ void writetest(char* s)
     }
 }
 
+// ファイルシステムが許すサイズギリギリまでデータを書き込んでもデータ管理が正しく行えているか
 void writebig(char* s)
 {
     int i, fd, n;
@@ -835,6 +851,7 @@ void writebig(char* s)
 }
 
 // many creates, followed by unlink test
+// 大量のファイル作成と、削除による正確なブロック管理が行えているか
 void createtest(char* s)
 {
     int i, fd;
@@ -850,7 +867,6 @@ void createtest(char* s)
     for (i = 0; i < N; i++)
     {
         // 末尾に文字を代入
-        // '0' + iなのがよくわからない
         name[1] = '0' + i;
         // a0 ~ 合計52つのファイルを作成
         fd = open(name, O_CREATE | O_RDWR);
@@ -867,6 +883,7 @@ void createtest(char* s)
     }
 }
 
+// 参照がない状態でのディレクトリ削除が正しく行えているか
 void dirtest(char* s)
 {
     // dir0ディレクトリの作成
@@ -899,6 +916,7 @@ void dirtest(char* s)
     }
 }
 
+// Unixのリダイレクト処理の基盤となる、ファイル記述子の操作と exec による継承
 void exectest(char* s)
 {
     int fd, xstatus, pid;
@@ -981,7 +999,7 @@ void exectest(char* s)
 }
 
 // simple fork and pipe read/write
-
+// プロセス間通信におけるパイプのストリーム一貫性と、可変長データ転送の正確性
 void pipe1(char* s)
 {
     int fds[2], pid, xstatus;
@@ -1076,6 +1094,7 @@ void pipe1(char* s)
 }
 
 // test if child is killed (status = -1)
+// 外部からの強制終了（kill）を受けたプロセスの終了状態が、親プロセスに正しく伝達されるか
 void killstatus(char* s)
 {
     int xst;
@@ -3658,6 +3677,7 @@ struct test
     {iputtest, "iput"},
     {opentest, "opentest"},
     {writetest, "writetest"},
+
     {writebig, "writebig"},
     {createtest, "createtest"},
     {dirtest, "dirtest"},
