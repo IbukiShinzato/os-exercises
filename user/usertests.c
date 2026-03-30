@@ -1134,6 +1134,7 @@ void killstatus(char* s)
 }
 
 // meant to be run w/ at most two CPUs
+// 複数プロセスがCPUを大量に使用している中でのpipeでのデータやり取りの正確性
 void preempt(char* s)
 {
     int pid1, pid2, pid3;
@@ -1246,6 +1247,7 @@ void exitwait(char* s)
 // try to find races in the reparenting
 // code that handles a parent exiting
 // when it still has live children.
+// 親が子を残して先に死んだ際、カーネルが孤児（孫）の親を正しく付け替え（Reparenting）できるか、その際のデータ整合性を検証する
 void reparent(char* s)
 {
     // 親プロセスのpid 
@@ -1288,6 +1290,7 @@ void reparent(char* s)
 }
 
 // what if two children exit() at the same time?
+// 複数プロセスが同時に終了したときのカーネルのリソース回収の正確性の検証
 void twochildren(char* s)
 {
     for (int i = 0; i < 1000; i++)
@@ -1330,6 +1333,7 @@ void twochildren(char* s)
 }
 
 // concurrent forks to try to expose locking bugs.
+// プロセスの大量生成によるカーネルのリソース管理の正確性の検証
 void forkfork(char* s)
 {
     enum
@@ -1385,6 +1389,8 @@ void forkfork(char* s)
     }
 }
 
+// 指数関数的に増えるプロセスでのファイルの整合性の検証
+// プロセス数が限界に達した時の挙動確認
 void forkforkfork(char* s)
 {
     // stopforkingを削除
@@ -1434,6 +1440,7 @@ void forkforkfork(char* s)
 // deadlocks against init's wait()? also used to trigger a "panic:
 // release" due to exit() releasing a different p->parent->lock than
 // it acquired.
+// 大量の孤児プロセスが発生した際の init プロセスによる自動回収機能の検証
 void reparent2(char* s)
 {
     for (int i = 0; i < 800; i++)
@@ -1461,6 +1468,7 @@ void reparent2(char* s)
 }
 
 // allocate all mem, free it, and allocate again
+// ユーザー空間における動的メモリの確保・解放のサイクルと、OSのリソース回収能力を検証
 void mem(char* s)
 {
     void *m1, *m2;
@@ -1517,6 +1525,7 @@ void mem(char* s)
 
 // two processes write to the same file descriptor
 // is the offset shared? does inode locking work?
+// 複数プロセス間でのファイル書き込みの排他的処理の検証
 void sharedfd(char* s)
 {
     int fd, pid, i, n, nc, np;
@@ -1536,7 +1545,7 @@ void sharedfd(char* s)
         exit(1);
     }
     pid = fork();
-    // 子プロセスならc,親プロセスならpをbufに入れる？
+    // 子プロセスならc,親プロセスならpをbufに入れる
     memset(buf, pid == 0 ? 'c' : 'p', sizeof(buf));
     for (i = 0; i < N; i++)
     {
@@ -1593,6 +1602,7 @@ void sharedfd(char* s)
 
 // four processes write different files at the same
 // time, to test block allocation.
+// 各プロセスが独自のファイルにデータを書き込んだときのブロック割り当ての整合性の検証
 void fourfiles(char* s)
 {
     int fd, pid, i, j, n, total, pi;
