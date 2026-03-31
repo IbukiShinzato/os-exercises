@@ -95,7 +95,7 @@ void copyin(char* s)
 
 // what if you pass ridiculous pointers to system calls
 // that write user memory with copyout?
-// ユーザが不正なメモリアドレスに対してデータを書き込もうとするがそれを正しくエラーを返してシステムを守れるか 
+// ユーザが不正なメモリアドレスに対してデータを書き込もうとするがそれを正しくエラーを返してシステムを守れるか
 void copyout(char* s)
 {
     uint64 addrs[] = {0LL,          0x80000000LL, 0x3fffffe000,
@@ -407,7 +407,7 @@ void truncate1(char* s)
         exit(1);
     }
 
-    // O_TRUNCよりtruncfileの中身は空になる 
+    // O_TRUNCよりtruncfileの中身は空になる
     fd1 = open("truncfile", O_WRONLY | O_TRUNC);
 
     // 中身空のtruncfileをopen
@@ -707,7 +707,7 @@ void opentest(char* s)
     }
 }
 
-// 大量のファイル書き込みを行い全て正しくデータとして保存されているか 
+// 大量のファイル書き込みを行い全て正しくデータとして保存されているか
 void writetest(char* s)
 {
     int fd;
@@ -748,7 +748,7 @@ void writetest(char* s)
         printf("%s: error: open small failed!\n", s);
         exit(1);
     }
-    // bufはglobal変数 
+    // bufはglobal変数
     i = read(fd, buf, N * SZ * 2);
     // 100 * 10 * 2Byteの読み取り
     // for文一回でa * 10 + b * 10の100回ループで合計2000Byte
@@ -899,7 +899,7 @@ void dirtest(char* s)
         printf("%s: chdir dir0 failed\n", s);
         exit(1);
     }
-    
+
     // 元のディレクトリに戻る
     if (chdir("..") < 0)
     {
@@ -988,7 +988,7 @@ void exectest(char* s)
     }
     // echo-okファイルを削除
     unlink("echo-ok");
-    // bufにそれぞれO,Kが入っているか 
+    // bufにそれぞれO,Kが入っているか
     if (buf[0] == 'O' && buf[1] == 'K')
         exit(0);
     else
@@ -1025,7 +1025,7 @@ void pipe1(char* s)
     // 子プロセス
     if (pid == 0)
     {
-        // 出口は使用しないからclose 
+        // 出口は使用しないからclose
         // 子プロセスではbufにデータを書き込む
         close(fds[0]);
         for (n = 0; n < N; n++)
@@ -1033,7 +1033,7 @@ void pipe1(char* s)
             // 0 ~ 1032までのbufにseqのincを代入
             // 書き込み口に0 ~ 1032までの数字を書き込む
             for (i = 0; i < SZ; i++) buf[i] = seq++;
-            // それをbufに書きこむ 
+            // それをbufに書きこむ
             if (write(fds[1], buf, SZ) != SZ)
             {
                 printf("%s: pipe1 oops 1\n", s);
@@ -1252,7 +1252,7 @@ void exitwait(char* s)
 // 親が子を残して先に死んだ際、カーネルが孤児（孫）の親を正しく付け替え（Reparenting）できるか、その際のデータ整合性を検証する
 void reparent(char* s)
 {
-    // 親プロセスのpid 
+    // 親プロセスのpid
     int master_pid = getpid();
     for (int i = 0; i < 200; i++)
     {
@@ -1483,7 +1483,7 @@ void mem(char* s)
         // 限界までメモリを確保
         while ((m2 = malloc(10001)) != 0)
         {
-            // m2にm1のポインタを代入 
+            // m2にm1のポインタを代入
             *(char**)m2 = m1;
             // m1に一番先頭のポインタを代入
             m1 = m2;
@@ -1692,7 +1692,8 @@ void fourfiles(char* s)
 }
 
 // four processes create and delete different files in same directory
-// 複数のプロセスによるディレクトリの作成・削除によるinodeの整合性の検証 デッドロックが起きないのか、ディスクのずれなどは起きないのか
+// 複数のプロセスによるディレクトリの作成・削除によるinodeの整合性の検証
+// デッドロックが起きないのか、ディスクのずれなどは起きないのか
 void createdelete(char* s)
 {
     enum
@@ -1829,13 +1830,13 @@ void unlinkread(char* s)
     write(fd1, "yyy", 3);
     close(fd1);
 
-    // このとき読み取れるのはhelloの5Byte 
+    // このとき読み取れるのはhelloの5Byte
     if (read(fd, buf, sizeof(buf)) != SZ)
     {
         printf("%s: unlinkread read failed", s);
         exit(1);
     }
-    // helloなのでbuf[0]はh 
+    // helloなのでbuf[0]はh
     if (buf[0] != 'h')
     {
         printf("%s: unlinkread wrong data\n", s);
@@ -2113,7 +2114,7 @@ void linkunlink(char* s)
         exit(0);
 }
 
-// 複雑なディレクトリ操作（作成、削除、open）によるi-nodeの権限管理、データ管理の正確性の検証 
+// 複雑なディレクトリ操作（作成、削除、open）によるi-nodeの権限管理、データ管理の正確性の検証
 // 階層化されたファイルシステムにおけるパス解析の正確性と、ディレクトリ操作の安全規則を総合的に検証
 void subdir(char* s)
 {
@@ -2655,32 +2656,33 @@ void dirfile(char* s)
 // iput(struct inode *ip)
 // {
 //   acquire(&itable.lock);
-// 
+//
 //   if(ip->ref == 1 && ip->valid && ip->nlink == 0){
 //     // inode has no links and no other references: truncate and free.
-// 
+//
 //     // ip->ref == 1 means no other process can have ip locked,
 //     // so this acquiresleep() won't block (or deadlock).
 //     acquiresleep(&ip->lock);
-// 
+//
 //     release(&itable.lock);
-// 
+//
 //     itrunc(ip);
 //     ip->type = 0;
 //     iupdate(ip);
 //     ip->valid = 0;
-// 
+//
 //     releasesleep(&ip->lock);
-// 
+//
 //     acquire(&itable.lock);
 //   }
-// 
+//
 //   ip->ref--;
 //   release(&itable.lock);
 // }
 
 // i-nodeが保持できる最大数のディレクトリの作成によるデータ管理の整合性の検証
-// メモリ上の i-node キャッシュ容量の限界（NINODE）付近における動作の安定性と、不正なパス指定に対する堅牢性を検証
+// メモリ上の i-node
+// キャッシュ容量の限界（NINODE）付近における動作の安定性と、不正なパス指定に対する堅牢性を検証
 void iref(char* s)
 {
     int i, fd;
@@ -2727,6 +2729,8 @@ void iref(char* s)
 // test that fork fails gracefully
 // the forktest binary also does this, but it runs out of proc entries first.
 // inside the bigger usertests binary, we run out of memory first.
+// カーネルがプロセス生成の限度を超えるとfork()を失敗させることができるかの検証
+// システムリソース（プロセステーブルおよび物理メモリ）が枯渇した際のカーネルの堅牢性とリソース回収の正確性を検証
 void forktest(char* s)
 {
     enum
@@ -2759,10 +2763,21 @@ void forktest(char* s)
         exit(1);
     }
 
+    printf("DEBUG: Successfully created %d processes.\n", n);
+
+    if (n < N)
+    {
+        printf("DEBUG: fork() failed at n=%d. (Resource Limit Reached)\n", n);
+    }
+    else
+    {
+        printf("DEBUG: Reached loop limit N=%d without fork failure.\n", N);
+    }
+
     // forkした分のプロセスの終了待機
     for (; n > 0; n--)
     {
-        // 終了したはずの子プロセスを待てなかった 
+        // 終了したはずの子プロセスを待てなかった
         if (wait(0) < 0)
         {
             printf("%s: wait stopped early\n", s);
@@ -2778,11 +2793,14 @@ void forktest(char* s)
     }
 }
 
+// 大きすぎるメモリの拡張に対してカーネルが正しくエラーを返せるかの検証
+// PageFaultが発生した際の挙動の確認
+// プロセスの動的メモリ割り当てにおけるエラーハンドリングと、メモリ空間の連続性を検証
 void sbrkbasic(char* s)
 {
     enum
     {
-        TOOMUCH = 1024 * 1024 * 1024 // 1GiB
+        TOOMUCH = 1024 * 1024 * 1024  // 1GiB
     };
     int i, pid, xstatus;
     char *c, *a, *b;
@@ -2808,7 +2826,7 @@ void sbrkbasic(char* s)
         }
         // ここで子プロセスは終了するべき
 
-        // 各ページに99を書き込む 
+        // 各ページに99を書き込む
         for (b = a; b < a + TOOMUCH; b += PGSIZE)
         {
             *b = 99;
@@ -2830,7 +2848,7 @@ void sbrkbasic(char* s)
 
     // can one sbrk() less than a page?
     // ページ単位未満での拡張
-    
+
     // 現在のヒープの末尾アドレス
     a = sbrk(0);
     for (i = 0; i < 5000; i++)
@@ -2869,11 +2887,13 @@ void sbrkbasic(char* s)
     exit(xstatus);
 }
 
+// 大きいサイズでのメモリ確保、解放によるデータの状態の検証
+// メモリの動的な縮小（解放）と、再割り当て時におけるデータの秘匿性（初期化）を検証
 void sbrkmuch(char* s)
 {
     enum
     {
-        BIG = 100 * 1024 * 1024 // 100MiB
+        BIG = 100 * 1024 * 1024  // 100MiB
     };
     char *c, *oldbrk, *a, *lastaddr, *p;
     uint64 amt;
@@ -2884,8 +2904,12 @@ void sbrkmuch(char* s)
     // can one grow address space to something big?
     // 現在のヒープ領域末尾アドレスを返す
     a = sbrk(0);
-    // 100MiBに到達するためのメモリサイズ 
+    // 100MiBに到達するためのメモリサイズ
     amt = BIG - (uint64)a;
+
+    // DEBUG: BIG: 104857600, a: 69632, amt: 104787968
+    printf("DEBUG: BIG: %d, a: %ld, amt: %ld\n", BIG, (uint64)a, amt);
+
     // 拡張前のアドレスが戻り値
     p = sbrk(amt);
     if (p != a)
@@ -2925,7 +2949,7 @@ void sbrkmuch(char* s)
     // 1Page(4KiB)分拡張
     // 拡張前のアドレスが戻り値
     c = sbrk(PGSIZE);
-    // 1Page分拡張されている想定 
+    // 1Page分拡張されている想定
     if (c != a || sbrk(0) != a + PGSIZE)
     {
         printf("%s: sbrk re-allocation failed, a %p c %p\n", s, a, c);
@@ -2950,6 +2974,8 @@ void sbrkmuch(char* s)
 }
 
 // can we read the kernel's memory?
+// カーネルメモリが読み取り不可であるかの検証
+// ハードウェアのページ保護機能を利用した、ユーザー空間とカーネル空間の完全な隔離を検証
 void kernmem(char* s)
 {
     char* a;
@@ -2980,10 +3006,16 @@ void kernmem(char* s)
 }
 
 // user code should not be able to write to addresses above MAXVA.
+// 仮想ページアドレスの範囲外にアクセスした時にカーネルがエラーを返せるかの検証
+// ハードウェアが許容する最大仮想アドレス（MAXVA）を超越した不正アクセスに対する OS の防御能力を検証
 void MAXVAplus(char* s)
 {
     // #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
     volatile uint64 a = MAXVA;
+
+    // DEBUG: MAXVA: 274877906944
+    printf("DEBUG: MAXVA: %ld\n", MAXVA);
+
     // overflowするまで
     for (; a != 0; a <<= 1)
     {
@@ -3014,11 +3046,13 @@ void MAXVAplus(char* s)
 
 // if we run the system out of memory, does it clean up the last
 // failed allocation?
+// カーネルがメモリ割り当てに失敗した際にそのメモリを確保せずに処理を進めるかの検証
+// メモリ割り当て失敗時におけるカーネルのリソース回収の完全性（メモリリークの欠如）を検証
 void sbrkfail(char* s)
 {
     enum
     {
-        BIG = 100 * 1024 * 1024 // 100MiB
+        BIG = 100 * 1024 * 1024  // 100MiB
     };
     int i, xstatus;
     int fds[2];
@@ -3106,6 +3140,8 @@ void sbrkfail(char* s)
 }
 
 // test reads/writes from/to allocated memory
+// 拡張されたメモリに対して正しく書き込めるかの検証
+// 動的に拡張されたユーザーメモリ領域に対する、システムコール経由のアクセス整合性を検証
 void sbrkarg(char* s)
 {
     char* a;
@@ -3115,7 +3151,7 @@ void sbrkarg(char* s)
     a = sbrk(PGSIZE);
     // sbrkファイルを作成
     fd = open("sbrk", O_CREATE | O_WRONLY);
-    // sbrkファイルを削除
+    // sbrkファイルを削除（名前のみ消える）
     unlink("sbrk");
     if (fd < 0)
     {
@@ -3140,14 +3176,18 @@ void sbrkarg(char* s)
     }
 }
 
+// システムコールで不正なポインタを受け取ったカーネルが正しくエラーを返すかの検証
+// システムコールの引数として渡される不正なメモリアドレスに対するカーネルの防御能力を検証
 void validatetest(char* s)
 {
     int hi;
     uint64 p;
 
-    hi = 1100 * 1024; // 1100KiB
+    hi = 1100 * 1024;  // 1100KiB
     for (p = 0; p <= (uint)hi; p += PGSIZE)
     {
+        // printf("DEBUG: p: %ld\n", p);
+
         // try to crash the kernel by passing in a bad string pointer
         // 不正なポインタを渡してカーネルをクラッシュ
         if (link("nosuchfile", (char*)p) != -1)
@@ -3293,7 +3333,7 @@ void argptest(char* s)
         printf("%s: open failed\n", s);
         exit(1);
     }
-    // ヒープ領域の末尾アドレスの一つ前からデータを1つinitに入れる 
+    // ヒープ領域の末尾アドレスの一つ前からデータを1つinitに入れる
     read(fd, sbrk(0) - 1, -1);
     close(fd);
 }
@@ -3406,7 +3446,7 @@ void sbrkbugs(char* s)
         // free all user memory; there used to be a bug that
         // would not adjust p->sz correctly in this case,
         // causing exit() to panic.
-        // 全てのユーザメモリを解放する 
+        // 全てのユーザメモリを解放する
         sbrk(-sz);
         // user page fault here.
         exit(0);
@@ -3522,7 +3562,7 @@ void badarg(char* s)
     exit(0);
 }
 
-#define REGION_SZ (1024 * 1024 * 1024) // 1GiB
+#define REGION_SZ (1024 * 1024 * 1024)  // 1GiB
 
 // Touch a page every 64 pages, which with lazy allocation
 // causes one page to be allocated.
