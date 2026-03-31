@@ -3559,6 +3559,8 @@ void sbrklast(char* s)
 
 // does sbrk handle signed int32 wrap-around with
 // negative arguments?
+// ユーザー側が想定していたアドレスがカーネルでは引数の型によるキャストによるメモリ拡張・解放の挙動の確認
+// システムコールの引数における符号付き整数の解釈ミス（ラップアラウンド）に伴う、意図しないメモリ縮小の防止を検証
 void sbrk8000(char* s)
 {
     // unsignedだと大きい正の整数だが、signedだと負の整数になる
@@ -3573,6 +3575,8 @@ void sbrk8000(char* s)
 
 // regression test. test whether exec() leaks memory if one of the
 // arguments is invalid. the test passes if the kernel doesn't panic.
+// 不正な引数を入れての実行時にエラーを返し、メモリも元の状態に戻してメモリリークが起きないかの検証
+// exec システムコールの異常終了時におけるリソース回収の完全性（メモリリークの防止）を検証
 void badarg(char* s)
 {
     for (int i = 0; i < 50000; i++)
@@ -3592,6 +3596,8 @@ void badarg(char* s)
 
 // Touch a page every 64 pages, which with lazy allocation
 // causes one page to be allocated.
+// 仮想アドレスを拡張して、物理アドレスは書き込まれて初めて拡張される遅延アロケータの挙動確認
+// オンデマンド・ページング（遅延割り当て）の正確性と、ページフォールト・ハンドラの堅牢性を検証
 void lazy_alloc(char* s)
 {
     char *i, *prev_end, *new_end;
@@ -3610,6 +3616,9 @@ void lazy_alloc(char* s)
 
     for (i = prev_end + PGSIZE; i < new_end; i += 64 * PGSIZE)
     {
+        // DEBUG
+        // printf("DEBUG: address=%p, stored_val=%p\n", (void*)i, *(void**)i);
+
         // 先ほど書き込んだ値が正しく読み取れるか
         if (*(char**)i != i)
         {
@@ -3624,6 +3633,8 @@ void lazy_alloc(char* s)
 // Touch a page every 64 pages in region, which with lazy allocation
 // causes one page to be allocated. Check that freeing the region
 // frees the allocated pages.
+// メモリ割り当て解放後の書き込みによるページフォルトの発生によるカーネルの安全性の検証
+// 遅延割り当て領域の解放（アンマップ）処理の確実性と、解放後のメモリ保護機能を検証
 void lazy_unmap(char* s)
 {
     int pid;
@@ -3673,6 +3684,8 @@ void lazy_unmap(char* s)
     exit(0);
 }
 
+// 遅延割り当て領域に対するシステムコールの挙動確認、不正なメモリアクセスに対するカーネルの保護の確認
+// 遅延割り当て領域に対するシステムコールの透過性と、特権メモリ領域の保護機能を検証
 void lazy_copy(char* s)
 {
     // copyinstr on lazy page
@@ -3681,11 +3694,13 @@ void lazy_copy(char* s)
         char* p = sbrk(0);
         // 4 * 4KiB = 16KiBの仮想アドレス領域拡張
         sbrklazy(4 * PGSIZE);
+        // 拡張前と拡張後の間のページをopen
         open(p + 8192, 0);
     }
 
     {
         void* xx = sbrk(0);
+        // 使用可能な全メモリ + 1Byte解放
         void* ret = sbrk(-(((uint64)xx) + 1));
         if (ret != xx)
         {
@@ -3733,14 +3748,15 @@ void lazy_copy(char* s)
     exit(0);
 }
 
+// TRAPFRAPE手前まで拡張、拡張されたアドレスのデータは0、TRAPFRAMEを超える拡張に失敗の確認
+// ユーザー空間の最大境界（MAXVA/TRAPFRAME）における厳密なサイズ制限と、新規メモリの初期化プロセスを検証
 void lazy_sbrk(char* s)
 {
     // sbrk() takes just int, so take 2^30-sized steps towards MAXVA
-    // ヒープ領域末尾アドレス
     char* p = sbrk(0);
     while ((uint64)p < MAXVA - (1 << 30))
     {
-        // 2^30ずつ仮想アドレスを書くとゆ
+        // 2^30ずつ仮想アドレスを書きこむ
         p = sbrklazy(1 << 30);
         if (p < 0)
         {
@@ -3752,6 +3768,8 @@ void lazy_sbrk(char* s)
         p = sbrklazy(0);
     }
 
+    // #define TRAMPOLINE (MAXVA - PGSIZE)
+    // #define TRAPFRAME (TRAMPOLINE - PGSIZE)
     int n = TRAPFRAME - PGSIZE - (uint64)p;
 
     char* p1 = sbrklazy(n);
@@ -3815,7 +3833,6 @@ struct test
     {iputtest, "iput"},
     {opentest, "opentest"},
     {writetest, "writetest"},
-
     {writebig, "writebig"},
     {createtest, "createtest"},
     {dirtest, "dirtest"},
