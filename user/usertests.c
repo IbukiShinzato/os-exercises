@@ -3330,6 +3330,8 @@ void fsfull(char* s)
     printf("fsfull test finished\n");
 }
 
+// 使用可能なメモリアドレスを引数としたシステムコールが実行可能か検証 
+// システムコールにおけるユーザーメモリ境界のバリデーションの正確性を検証
 void argptest(char* s)
 {
     int fd;
@@ -3347,6 +3349,9 @@ void argptest(char* s)
 
 // check that there's an invalid page beneath
 // the user stack, to catch stack overflow.
+// スタック領域の前のメモリには無効なページアドレスがあるかの検証
+// スタックは高いアドレスから低いアドレスに伸びていく
+// スタックオーバーフローによるメモリ破壊を防ぐための『ガードページ』の有効性を検証
 void stacktest(char* s)
 {
     int pid;
@@ -3383,6 +3388,8 @@ void stacktest(char* s)
 
 // check that writes to a few forbidden addresses
 // cause a fault, e.g. process's text and TRAMPOLINE.
+// カーネル領域や不正なアドレスに対して書き込みを防ぐ安全性の検証
+// カーネル空間およびシステム管理用特殊ページ（TRAMPOLINE等）に対するユーザー空間からの不正書き込みの遮断能力を検証
 void nowrite(char* s)
 {
     int pid;
@@ -3421,6 +3428,8 @@ void nowrite(char* s)
 // the virtual page address to uint, which (with certain wild system
 // call arguments) resulted in a kernel page faults.
 // 仮想ページアドレス
+// 無効なページアドレスをexec()の引数として実行した時にカーネルはエラーを安全にエラーを返せるかの検証
+// 64bit仮想アドレスの取り扱いにおける型キャストの安全性と、カーネルの回帰テスト（Regression Test）を目的
 void* big = (void*)0xeaeb0b5b00002f5e;
 void pgbug(char* s)
 {
@@ -3429,6 +3438,12 @@ void pgbug(char* s)
     argv[0] = 0;
     // bigアドレスを直接叩く
     exec(big, argv);
+
+    // DEBUG: ret: -1
+    // exec()が失敗していることがわかる
+    int ret = exec(big, argv);
+    printf("DEBUG: ret: %d\n", ret);
+    
     // pipeで二つのfdを割り振る
     pipe(big);
 
@@ -3438,6 +3453,8 @@ void pgbug(char* s)
 // regression test. does the kernel panic if a process sbrk()s its
 // size to be less than a page, or zero, or reduces the break by an
 // amount too small to cause a page to be freed?
+// ページ単位じゃないサイズでのメモリ確保解放を行った時の使用可能なメモリ領域の整合性の検証
+// メモリ管理ユニット（MMU）の最小単位である『ページ』と、ユーザー空間の『仮想サイズ』の不一致による計算ミス（オフバイワンエラー等）を検証
 void sbrkbugs(char* s)
 {
     int pid = fork();
@@ -3507,6 +3524,8 @@ void sbrkbugs(char* s)
 // if process size was somewhat more than a page boundary, and then
 // shrunk to be somewhat less than that page boundary, can the kernel
 // still copyin() from addresses in the last page?
+// ページテーブルを跨ぐメモリ操作時のメモリ管理の正確性の検証
+// ページ境界を跨ぐ微小なメモリ増減における、カーネルのページ維持・解放判定の正確性を検証
 void sbrklast(char* s)
 {
     // ヒープ領域末尾アドレス
