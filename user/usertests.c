@@ -3199,7 +3199,7 @@ void validatetest(char* s)
 }
 
 // does uninitialized data start out zero?
-// 初期化されていないデータがちゃんとNULL文字（\0)になっているかの検証 
+// 初期化されていないデータがちゃんとNULL文字（\0)になっているかの検証
 // 実行時ロードにおける BSS セクションのゼロ初期化処理の正確性を検証
 
 // 要素数10000の配列の初期化
@@ -3330,7 +3330,7 @@ void fsfull(char* s)
     printf("fsfull test finished\n");
 }
 
-// 使用可能なメモリアドレスを引数としたシステムコールが実行可能か検証 
+// 使用可能なメモリアドレスを引数としたシステムコールが実行可能か検証
 // システムコールにおけるユーザーメモリ境界のバリデーションの正確性を検証
 void argptest(char* s)
 {
@@ -3443,7 +3443,7 @@ void pgbug(char* s)
     // exec()が失敗していることがわかる
     int ret = exec(big, argv);
     printf("DEBUG: ret: %d\n", ret);
-    
+
     // pipeで二つのfdを割り振る
     pipe(big);
 
@@ -3892,6 +3892,8 @@ struct test
 //
 
 // directory that uses indirect blocks
+// 大量のファイルの作成によるブロック割り当ての挙動確認
+// ディレクトリファイルの動的拡張能力と、多量のエントリ管理におけるファイルシステムの整合性を検証
 void bigdir(char* s)
 {
     enum
@@ -3945,6 +3947,8 @@ void bigdir(char* s)
 
 // concurrent writes to try to provoke deadlock in the virtio disk
 // driver.
+// 複数プロセス間で各ファイルを書き込むことによるデッドロックの検知とブロック管理の整合性の検証
+// マルチプロセス環境下におけるファイルシステムの原子性（Atomicity）とデッドロック耐性を検証
 void manywrites(char* s)
 {
     int nchildren = 4;
@@ -3981,7 +3985,7 @@ void manywrites(char* s)
                         exit(1);
                     }
                     int sz = sizeof(buf);
-                    // ファイルにデータを書き込む
+                    // ファイルからbufに書き込む
                     int cc = write(fd, buf, sz);
                     if (cc != sz)
                     {
@@ -4012,6 +4016,9 @@ void manywrites(char* s)
 // file is deleted? if the kernel has this bug, it will panic: balloc:
 // out of blocks. assumed_free may need to be raised to be more than
 // the number of free blocks. this test takes a long time.
+// write失敗時のブロック解放の挙動確認
+// ブロックの解放を行わなかったら不正なディスクに対しての書き込みが行われる
+// ファイルシステムにおけるエラーパスのリソース管理（ディスクブロックの回収）の正確性を検証
 void badwrite(char* s)
 {
     // ディスクの空きブロック数より少し多い
@@ -4027,6 +4034,11 @@ void badwrite(char* s)
             printf("open junk failed\n");
             exit(1);
         }
+
+        // DEBUG: ret=1
+        // int ret = write(fd, (char*)0xffffffffffL, 1);
+        // printf("DEBUG: ret=%d\n", ret);
+
         // 無効なアドレスから1Byte書き込もうとする
         // 当然失敗する
         write(fd, (char*)0xffffffffffL, 1);
@@ -4047,6 +4059,22 @@ void badwrite(char* s)
         printf("write failed\n");
         exit(1);
     }
+
+    // DEBUG
+    close(fd);
+
+    fd = open("junk", O_RDONLY);
+    char debug_buf[2];
+    if (read(fd, debug_buf, 1) == 1)
+    {
+        debug_buf[1] = '\0';
+        printf("DEBUG: data read from file: %s\n", debug_buf);
+    }
+    else
+    {
+        printf("DEBUG: read failed\n");
+    }
+
     close(fd);
     unlink("junk");
 
@@ -4056,6 +4084,8 @@ void badwrite(char* s)
 // test the exec() code that cleans up if it runs out
 // of memory. it's really a test that such a condition
 // doesn't cause a panic.
+// ユーザが使用可能なメモリサイズ拡張と解放後のexec実行でのメモリ解放の検証
+// exec システムコール実行中のメモリ枯渇に対する例外処理の堅牢性を検証
 void execout(char* s)
 {
     for (int avail = 0; avail < 15; avail++)
@@ -4084,8 +4114,10 @@ void execout(char* s)
             // ヒープ領域を解放
             for (int i = 0; i < avail; i++) sbrk(-PGSIZE);
 
-            // 標準出力をclose
-            close(1);
+            // DEBUG用に標準出力に書き込む
+            // close(1);
+
+            if (avail == 0) printf("\n");
             char* args[] = {"echo", "x", 0};
             // echo x を実行
             exec("echo", args);
@@ -4101,6 +4133,8 @@ void execout(char* s)
 }
 
 // can the kernel tolerate running out of disk space?
+// ディスクの枯渇時のシステムの挙動確認(balloc: out of blocksが出力される)
+// ファイルシステムの物理的限界（ディスクフル）におけるエラーハンドリングの堅牢性を検証
 void diskfull(char* s)
 {
     int fi;
@@ -4189,6 +4223,8 @@ void diskfull(char* s)
     }
 }
 
+// inodeの枯渇が起きた際にシステムが正しくエラーを返すか検証
+// ファイルシステムの管理リソース（iノード）の枯渇に対する堅牢性を検証
 void outofinodes(char* s)
 {
     // inodeの最大容量
@@ -4206,6 +4242,41 @@ void outofinodes(char* s)
         int fd = open(name, O_CREATE | O_RDWR | O_TRUNC);
         if (fd < 0)
         {
+            // #define NINODES 200
+            // #define NINODE  50  // maximum number of active i-nodes
+            // DEBUG: max inode use count is 175
+
+            // 初期状態でのinodeの数は25
+            // $ ls
+            // .              1 1 1024
+            // ..             1 1 1024
+            // README         2 2 2425
+            // cat            2 3 38152
+            // cp             2 4 38656
+            // echo           2 5 36936
+            // forktest       2 6 18224
+            // grep           2 7 41720
+            // init           2 8 37320
+            // kill           2 9 36872
+            // ln             2 10 36656
+            // ls             2 11 40280
+            // mkdir          2 12 36928
+            // mv             2 13 39576
+            // rm             2 14 36912
+            // sh             2 15 60872
+            // stressfs       2 16 37792
+            // touch          2 17 37096
+            // usertests      2 18 195944
+            // grind          2 19 53432
+            // wc             2 20 39184
+            // zombie         2 21 36192
+            // logstress      2 22 38952
+            // forphan        2 23 37696
+            // dorphan        2 24 37128
+            // console        3 25 0
+
+            printf("DEBUG: max inode use count is %d\n", i + 1);
+
             // failure is eventually expected.
             break;
         }
