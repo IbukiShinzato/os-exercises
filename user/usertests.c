@@ -1206,6 +1206,8 @@ void preempt(char* s)
 }
 
 // try to find any races between exit and wait
+// プロセスのforkとexitによる親プロセスの子プロセスの回収の正確性の検証
+// プロセスの終了処理（exit）と親プロセスによる回収処理（wait）の同期およびデータの整合性
 void exitwait(char* s)
 {
     int i, pid;
@@ -2351,11 +2353,14 @@ void subdir(char* s)
 }
 
 // test writes that are larger than the log.
+// 大きいデータの書き込みによるi-nodeのブロック管理の整合性の検証
+// ファイルシステムのログ容量を超える巨大なデータ書き込みに対する、OSの分割処理能力を検証
 void bigwrite(char* s)
 {
     int fd, sz;
 
     unlink("bigwrite");
+
     for (sz = 499; sz < (MAXOPBLOCKS + 2) * BSIZE; sz += 471)
     {
         // bifwriteファイルを作成
@@ -2380,6 +2385,8 @@ void bigwrite(char* s)
     }
 }
 
+// 大きいサイズのファイルを読み込む際に、データの崩れ、offsetの共有ができているかの検証
+// 物理的なディスクブロックの境界を意識させない、論理的なデータアクセスの一貫性を検証
 void bigfile(char* s)
 {
     enum
@@ -2450,6 +2457,8 @@ void bigfile(char* s)
     unlink("bigfile.dat");
 }
 
+// ディレクトリ名の最大文字数14文字を超える場合はそれ以降の文字が切り捨てられることの検証
+// ファイルシステムのディレクトリ構造における、ファイル名長制限の強制と切り捨て処理の一貫性
 void fourteen(char* s)
 {
     int fd;
@@ -2501,6 +2510,8 @@ void fourteen(char* s)
     unlink("12345678901234");
 }
 
+// ファイルシステムが.と..ディレクトリの削除を拒否する挙動の確認
+// ファイルシステムの論理構造を維持するための、特殊エントリ（. および ..）に対する保護機能を検証
 void rmdot(char* s)
 {
     // dots dirを作成
@@ -2553,6 +2564,9 @@ void rmdot(char* s)
     }
 }
 
+// ファイル上でのカーネルによるディレクトリ作成を防ぐ挙動の検証
+// 特殊エントリ（.）に対する書き込み権限の拒否の検証
+// ファイルタイプ（一般ファイル/ディレクトリ）の厳格な区別と、ディレクトリ・データの保護メカニズムを検証
 void dirfile(char* s)
 {
     int fd;
@@ -2629,10 +2643,49 @@ void dirfile(char* s)
 
 // test that iput() is called at the end of _namei().
 // also tests empty file names.
+
+// struct inode*
+// namei(char *path)
+// {
+//   char name[DIRSIZ];
+//   return namex(path, 0, name);
+// }
+
+// void
+// iput(struct inode *ip)
+// {
+//   acquire(&itable.lock);
+// 
+//   if(ip->ref == 1 && ip->valid && ip->nlink == 0){
+//     // inode has no links and no other references: truncate and free.
+// 
+//     // ip->ref == 1 means no other process can have ip locked,
+//     // so this acquiresleep() won't block (or deadlock).
+//     acquiresleep(&ip->lock);
+// 
+//     release(&itable.lock);
+// 
+//     itrunc(ip);
+//     ip->type = 0;
+//     iupdate(ip);
+//     ip->valid = 0;
+// 
+//     releasesleep(&ip->lock);
+// 
+//     acquire(&itable.lock);
+//   }
+// 
+//   ip->ref--;
+//   release(&itable.lock);
+// }
+
+// i-nodeが保持できる最大数のディレクトリの作成によるデータ管理の整合性の検証
+// メモリ上の i-node キャッシュ容量の限界（NINODE）付近における動作の安定性と、不正なパス指定に対する堅牢性を検証
 void iref(char* s)
 {
     int i, fd;
 
+    // #define NINODE       50  // maximum number of active i-nodes
     // NINODE: xv6カーネルがメモリ上に同時に保持できる i-node の最大数
     for (i = 0; i < NINODE + 1; i++)
     {
