@@ -1690,6 +1690,7 @@ void fourfiles(char* s)
 }
 
 // four processes create and delete different files in same directory
+// 複数のプロセスによるディレクトリの作成・削除によるinodeの整合性の検証 デッドロックが起きないのか、ディスクのずれなどは起きないのか
 void createdelete(char* s)
 {
     enum
@@ -1785,6 +1786,7 @@ void createdelete(char* s)
 }
 
 // can I unlink a file and still read it?
+// i-node の参照カウンタに基づいた、ファイル実体の生存管理機能を検証
 void unlinkread(char* s)
 {
     enum
@@ -1804,7 +1806,7 @@ void unlinkread(char* s)
     write(fd, "hello", SZ);
     close(fd);
 
-    // 読み取りモードでopen
+    // 読み書きモードでopen
     fd = open("unlinkread", O_RDWR);
     if (fd < 0)
     {
@@ -1847,6 +1849,7 @@ void unlinkread(char* s)
     unlink("unlinkread");
 }
 
+// linkシステムコールでのinodeの整合性、unlink前のlink成功時の挙動確認
 void linktest(char* s)
 {
     enum
@@ -1928,6 +1931,8 @@ void linktest(char* s)
 }
 
 // test concurrent create/link/unlink of the same file
+// 大量のファイル作成、削除、リンク、読み書きによるi-nodeの整合性の検証
+// 同一ディレクトリ・同一ファイルに対する並行・競合操作時におけるディレクトリ構造の完全性を検証
 void concreate(char* s)
 {
     enum
@@ -2063,6 +2068,8 @@ void concreate(char* s)
 
 // another concurrent link/unlink/create test,
 // to look for deadlocks.
+// ファイルの開け閉め、link、unlinkによるデッドロック、レースコンディションの検知を検証
+// 非決定的なファイル操作の連続による、カーネル内デッドロックの存否を検証
 void linkunlink(char* s)
 {
     int pid, i;
@@ -2104,6 +2111,8 @@ void linkunlink(char* s)
         exit(0);
 }
 
+// 複雑なディレクトリ操作（作成、削除、open）によるi-nodeの権限管理、データ管理の正確性の検証 
+// 階層化されたファイルシステムにおけるパス解析の正確性と、ディレクトリ操作の安全規則を総合的に検証
 void subdir(char* s)
 {
     int fd, cc;
