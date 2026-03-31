@@ -3199,6 +3199,9 @@ void validatetest(char* s)
 }
 
 // does uninitialized data start out zero?
+// 初期化されていないデータがちゃんとNULL文字（\0)になっているかの検証 
+// 実行時ロードにおける BSS セクションのゼロ初期化処理の正確性を検証
+
 // 要素数10000の配列の初期化
 char uninit[10000];
 void bsstest(char* s)
@@ -3215,9 +3218,11 @@ void bsstest(char* s)
     }
 }
 
-// does exec return an error if the arguments
+// does exec return an error if the argument
 // are larger than a page? or does it write
 // below the stack and wreck the instructions/data?
+// システムコール時に1ページ領域を超える引数が与えられた時、カーネルはスタックを汚さずにエラーを返せるかの検証
+// exec システムコールにおける引数データのコピー処理と、スタック領域の境界保護
 void bigargtest(char* s)
 {
     int pid, fd, xstatus;
@@ -3267,7 +3272,9 @@ void bigargtest(char* s)
 
 // what happens when the file system runs out of blocks?
 // answer: balloc panics, so this test is not useful.
-void fsfull()
+// 使用できるブロックが枯渇した際にカーネルがプロセスを終了させられるかの検証
+// ファイルシステムの物理的限界（ディスクフル状態）におけるカーネルの堅牢性とリソース回収能力を検証
+void fsfull(char* s)
 {
     int nfiles;
     int fsblocks = 0;
@@ -3828,6 +3835,7 @@ struct test
     {validatetest, "validatetest"},
     {bsstest, "bsstest"},
     {bigargtest, "bigargtest"},
+    {fsfull, "fsfull"},
     {argptest, "argptest"},
     {stacktest, "stacktest"},
     {nowrite, "nowrite"},
