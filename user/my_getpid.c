@@ -5,5 +5,5 @@ int main(int argc, char* argv[])
 {
     int pid = my_getpid();
     printf("My PID: %d\n", pid);
-    return 0;
+    exit(0);
 }

@@ -29,6 +29,32 @@ sys_my_getpid(void)
 }
 
 uint64
+sys_check_proc(void)
+{
+  extern struct proc proc[NPROC];
+
+  int pid;
+  argint(0, &pid);
+
+  // enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+  // 0 -> success, -1 -> failed
+
+  struct proc *p;
+
+  int found = 0;
+  for(p = proc; p < &proc[NPROC]; p++){
+    acquire(&p->lock);
+    if(p->pid == pid && p->state != UNUSED){
+      found = 1;
+    }
+    release(&p->lock);
+    if (found) return 0;
+  }
+
+  return -1; 
+}
+
+uint64
 sys_fork(void)
 {
   return kfork();
