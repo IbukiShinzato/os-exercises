@@ -153,15 +153,15 @@ sys_set_msg(void) {
   argaddr(0, (uint64*)&user_buf);
   argint(1, &user_len); 
   
-  if (user_len > MAX_MSG_LEN || user_len < 0) {
+  if ((user_len + k_msg_len) > MAX_MSG_LEN || user_len < 0) {
     return -1;
   }
 
-  if (copyin(p->pagetable, k_msg, (uint64)user_buf, user_len) < 0) {
+  if (copyin(p->pagetable, k_msg + k_msg_len, (uint64)user_buf, user_len) < 0) {
     return -1;
   }
 
-  k_msg_len = user_len;
+  k_msg_len += user_len;
 
   return 0;
 }
