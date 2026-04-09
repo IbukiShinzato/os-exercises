@@ -7,6 +7,10 @@
 #include "proc.h"
 #include "vm.h"
 
+#define MAX_MSG_LEN 512
+static char k_msg[MAX_MSG_LEN];
+static int k_msg_len = 0;
+
 uint64
 sys_exit(void)
 {
@@ -138,4 +142,51 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_set_msg(void) {
+  char *user_buf;
+  int user_len;
+  struct proc *p = myproc();
+
+  argaddr(0, (uint64*)&user_buf);
+  argint(1, &user_len); 
+  
+  if (user_len > MAX_MSG_LEN || user_len < 0) {
+    return -1;
+  }
+
+  if (copyin(p->pagetable, k_msg, (uint64)user_buf, user_len) < 0) {
+    return -1;
+  }
+
+  k_msg_len = user_len;
+
+  return 0;
+}
+
+uint64
+sys_get_msg(void) {
+  char *user_buf;
+  int user_len;
+
+  argaddr(0, (uint64*)&user_buf);
+  argint(1, &user_len);
+  struct proc *p = myproc();
+
+  if (k_msg_len <= 0) {
+    return 0;
+  }
+
+  int actual_len = user_len;
+  if (actual_len > k_msg_len) {
+    actual_len = k_msg_len;
+  }
+
+  if (copyout(p->pagetable, (uint64)user_buf, k_msg, actual_len) < 0) {
+    return -1;
+  }
+
+  return 0;
 }

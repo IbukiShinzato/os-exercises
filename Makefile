@@ -151,6 +151,7 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_my_getpid\
 	$U/_check_proc\
+	$U/_set_msg\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

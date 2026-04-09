@@ -26,6 +26,8 @@ int pause(int);
 int uptime(void);
 int my_getpid(void);
 int check_proc(int);
+int set_msg(char*, int);
+int get_msg(char*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

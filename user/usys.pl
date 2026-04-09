@@ -44,3 +44,5 @@ entry("pause");
 entry("uptime");
 entry("my_getpid");
 entry("check_proc");
+entry("set_msg");
+entry("get_msg");
