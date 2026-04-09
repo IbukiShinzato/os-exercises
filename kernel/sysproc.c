@@ -188,5 +188,5 @@ sys_get_msg(void) {
     return -1;
   }
 
-  return 0;
+  return actual_len;
 }

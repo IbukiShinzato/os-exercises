@@ -152,6 +152,7 @@ UPROGS=\
 	$U/_my_getpid\
 	$U/_check_proc\
 	$U/_set_msg\
+	$U/_get_msg\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
