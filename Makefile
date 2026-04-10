@@ -155,6 +155,7 @@ UPROGS=\
 	$U/_get_msg\
 	$U/_get_pgdir\
 	$U/_get_validpg\
+	$U/_pwd\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

@@ -48,3 +48,4 @@ entry("set_msg");
 entry("get_msg");
 entry("get_pgdir");
 entry("get_validpg_num");
+entry("get_cwd")

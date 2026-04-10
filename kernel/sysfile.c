@@ -503,3 +503,73 @@ sys_pipe(void)
   }
   return 0;
 }
+
+uint64
+sys_get_cwd(void) 
+{
+  char path[512];
+  char *s = path + 511;
+  *s = '\0';
+
+  struct proc *p = myproc();
+  struct inode *original_cwd = p->cwd; 
+  struct inode *curr = idup(p->cwd);   
+
+  while(curr->inum != ROOTINO){
+    p->cwd = curr;
+    struct inode *parent = namei("..");
+    
+    if(parent == 0){
+      p->cwd = original_cwd; 
+      iput(curr);
+      return -1;
+    }
+
+    struct dirent de;
+    uint off;
+    int found = 0;
+    char name_found[DIRSIZ];
+
+    ilock(parent);
+    for(off = 0; off < parent->size; off += sizeof(de)){
+      if(readi(parent, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+        break;
+      if(de.inum == curr->inum){
+        safestrcpy(name_found, de.name, DIRSIZ);
+        found = 1;
+        break;
+      }
+    }
+    iunlock(parent);
+
+    if(!found){
+      iput(parent);
+      p->cwd = original_cwd; 
+      iput(curr);
+      return -1;
+    }
+
+    int len = strlen(name_found);
+    s -= len;
+    memmove(s, name_found, len);
+    *--s = '/';
+
+    iput(curr);
+    curr = parent; 
+  }
+
+  p->cwd = original_cwd;
+  iput(curr);
+
+  if(*s == '\0') 
+    *--s = '/';
+
+  uint64 user_buf_addr;
+  argaddr(0, &user_buf_addr); 
+
+  if (copyout(p->pagetable, user_buf_addr, s, strlen(s) + 1) < 0) {
+    return -1;
+  }
+
+  return 0;
+}
