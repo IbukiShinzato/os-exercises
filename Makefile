@@ -153,6 +153,7 @@ UPROGS=\
 	$U/_check_proc\
 	$U/_set_msg\
 	$U/_get_msg\
+	$U/_get_pgdir\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

@@ -190,3 +190,8 @@ sys_get_msg(void) {
 
   return actual_len;
 }
+
+uint64
+sys_get_pgdir(void) {
+  return ((uint64)r_satp() & ~SATP_SV39) << 12;
+}
