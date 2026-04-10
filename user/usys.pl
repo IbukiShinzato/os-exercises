@@ -47,3 +47,4 @@ entry("check_proc");
 entry("set_msg");
 entry("get_msg");
 entry("get_pgdir");
+entry("get_validpg_num");

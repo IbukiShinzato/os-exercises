@@ -29,6 +29,7 @@ int check_proc(int);
 int set_msg(char*, int);
 int get_msg(char*, int);
 int get_pgdir(void);
+int get_validpg_num(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

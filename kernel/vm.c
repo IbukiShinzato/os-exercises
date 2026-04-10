@@ -484,3 +484,27 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
+uint64
+sys_get_validpg_num(void)
+{
+  struct proc *p = myproc();
+  uint64 va;
+  int count = 0;
+
+  for(va = 0; va < p->sz; va += PGSIZE){
+    pte_t *pte = walk(p->pagetable, va, 0);
+
+    if(pte != 0){
+        printf("DEBUG: va: %lx, pte: %p, data: %lx\n", va, pte, *pte);
+        if(*pte & PTE_V){
+            count++;
+        }
+    } else {
+        printf("DEBUG: va: %lx is not mapped\n", va);
+    }
+
+  }
+
+  return count;
+}
