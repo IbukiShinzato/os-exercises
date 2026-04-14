@@ -195,3 +195,10 @@ uint64
 sys_get_pgdir(void) {
   return ((uint64)r_satp() & ~SATP_SV39) << 12;
 }
+
+uint64
+sys_get_nproc(void)
+{
+  extern int started_cpus;
+  return started_cpus;
+}

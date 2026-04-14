@@ -27,3 +27,4 @@
 #define SYS_get_pgdir        26
 #define SYS_get_validpg_num  27
 #define SYS_get_cwd          28
+#define SYS_get_nproc        29

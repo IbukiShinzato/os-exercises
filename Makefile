@@ -156,6 +156,7 @@ UPROGS=\
 	$U/_get_pgdir\
 	$U/_get_validpg\
 	$U/_pwd\
+	$U/_nproc\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
@@ -178,6 +179,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
 CPUS := 3
+# CPUS := 4
 endif
 
 # QEMUの画面を表示
