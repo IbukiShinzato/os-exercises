@@ -5,13 +5,14 @@
 #include "defs.h"
 
 volatile static int started = 0;
-volatile int started_cpus = 0;
+int local_started[NCPU];
 
 // start() jumps here in supervisor mode on all CPUs.
 void
 main()
 {
-  if(cpuid() == 0){
+  int id = cpuid();
+  if(id == 0){
     consoleinit();
     printfinit();
     printf("\n");
@@ -31,7 +32,7 @@ main()
     virtio_disk_init(); // emulated hard disk
     userinit();      // first user process
                      
-    __sync_fetch_and_add(&started_cpus, 1);
+    local_started[id] = 1;
 
     __sync_synchronize();
     started = 1;
@@ -39,9 +40,10 @@ main()
     while(started == 0)
       ;
     __sync_synchronize();
-    printf("hart %d starting\n", cpuid());
+    id = cpuid();
+    printf("hart %d starting\n", id);
 
-    __sync_fetch_and_add(&started_cpus, 1);
+    local_started[id] = 1;
 
     kvminithart();    // turn on paging
     trapinithart();   // install kernel trap vector

@@ -199,6 +199,15 @@ sys_get_pgdir(void) {
 uint64
 sys_get_nproc(void)
 {
-  extern int started_cpus;
-  return started_cpus;
+  extern int local_started[NCPU];
+
+  int total = 0;
+  for (int i = 0; i < NCPU; i++) {
+    if (local_started[i]) {
+      // printf("can use cpu: %d\n", i);
+      total++;
+    }
+  }
+
+  return total;
 }
