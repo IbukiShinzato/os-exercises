@@ -50,3 +50,5 @@ entry("get_pgdir");
 entry("get_validpg_num");
 entry("get_cwd");
 entry("get_nproc");
+entry("settickets");
+entry("getpinfo");

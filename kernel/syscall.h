@@ -28,3 +28,5 @@
 #define SYS_get_validpg_num  27
 #define SYS_get_cwd          28
 #define SYS_get_nproc        29
+#define SYS_settickets       30
+#define SYS_getpinfo         31

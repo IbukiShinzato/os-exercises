@@ -157,6 +157,9 @@ UPROGS=\
 	$U/_get_validpg\
 	$U/_pwd\
 	$U/_nproc\
+	$U/_settickets\
+	$U/_ps\
+	$U/_stride_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
