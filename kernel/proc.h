@@ -110,12 +110,3 @@ struct proc {
   int stride;
   int time;
 };
-
-struct pstat {
-  int inuse[NPROC];   
-  int pids[NPROC];    
-  int tickets[NPROC]; 
-  int pass[NPROC];    
-  int stride[NPROC];  
-  int times[NPROC]; 
-};

@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pstat.h"
 #include "vm.h"
 
 #define MAX_MSG_LEN 512
@@ -230,6 +231,44 @@ sys_settickets(void)
   p->tickets = tickets;
   p->stride = STRIDE_CONSTANT / tickets;
   release(&p->lock);
+
+  return 0;
+}
+
+uint64
+sys_getpinfo(void)
+{ 
+  extern struct proc proc[NPROC];
+
+  uint64 addr; 
+  struct pstat st;
+  struct proc *p;
+  int i;
+
+  argaddr(0, &addr);
+
+  for (i = 0; i < NPROC; i++) {
+    p = &proc[i];
+
+    acquire(&p->lock);
+
+    if (p->state != UNUSED) {
+      st.inuse[i] = 1;
+      st.pids[i] = p->pid;
+      st.tickets[i] = p->tickets;
+      st.pass[i] = p->pass;
+      st.stride[i] = p->stride;
+      st.times[i] = p->time; 
+    } else {
+      st.inuse[i] = 0;
+    }
+
+    release(&p->lock);
+  }
+
+  if (copyout(myproc()->pagetable, addr, (char *)&st, sizeof(st)) < 0) {
+    return -1;
+  }
 
   return 0;
 }

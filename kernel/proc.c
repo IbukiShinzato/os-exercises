@@ -334,6 +334,14 @@ kfork(void)
   acquire(&np->lock);
   np->state = RUNNABLE;
   release(&np->lock);
+  
+  acquire(&p->lock);
+  acquire(&np->lock);
+  np->tickets = p->tickets;
+  np->stride = p->stride;
+  np->pass = p->pass;
+  release(&p->lock);
+  release(&np->lock);
 
   return pid;
 }
@@ -493,7 +501,7 @@ scheduler(void)
     // before jumping back to us.
     if (best_p) {
       if (before_pid != -1) {
-        printf("\nCPU[%d] pid: %d -> pid: %d\n", cpuid(), before_pid, best_p->pid);
+        // printf("\nCPU[%d] pid: %d -> pid: %d\n", cpuid(), before_pid, best_p->pid);
       }
 
       best_p->pass += best_p->stride;
