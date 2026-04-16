@@ -2,7 +2,7 @@
 struct context {
   uint64 ra;
   uint64 sp;
-
+  uint64 pids[NPROC];
   // callee-saved
   uint64 s0;
   uint64 s1;
@@ -105,3 +105,12 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 };
+
+struct pstat {
+  int inuse[NPROC];
+  int pids[NPROC];
+  int tickets[NPROC];
+  int pass[NPROC];
+  int stride[NPROC];
+  int time[NPROC];
+}
