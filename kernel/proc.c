@@ -6,6 +6,8 @@
 #include "proc.h"
 #include "defs.h"
 
+#define STRIDE_CONSTANT 360360
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -146,6 +148,12 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  p->ticket = 10;
+  p->stride = STRIDE_CONSTANT / 10;
+  p->time = 0;
+  int pid = p->pid;
+  p->pass = get_min_pass(pid);
+
   return p;
 }
 
@@ -169,6 +177,31 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  p->ticket = 0;
+  p->stride = 0;
+  p->time = 0;
+  p->pass = 0;
+}
+
+int
+get_min_pass(int pid) {
+  struct proc *p;
+  int best_pass = 1 << 30;
+  int found = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    if (p->pid == pid) continue;
+
+    acquire(&p->lock);
+    if ((p->state == RUNNABLE || p->state == RUNNING) && p->pass < best_pass) {
+      best_pass = p->pass;
+      found = 1;
+    } 
+    release(&p->lock);
+  }
+
+  return (found) ? best_pass : 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -439,34 +472,43 @@ scheduler(void)
     intr_on();
     intr_off();
 
-    int found = 0;
+    struct proc *best_p = 0;
+
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        
-        // if (before_pid != -1 && p->pid > 2) {
-        if (before_pid != -1) {
-          printf("\nCPU[%d] pid: %d -> pid: %d\n", cpuid(), before_pid, p->pid);
+        if (best_p == 0 || p->pass < best_p->pass) {
+          if (best_p) {
+            release(&best_p->lock);
+          } 
+          best_p = p;
+          continue;
         }
-        
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        before_pid = p->pid;
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
       }
       release(&p->lock);
     }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
+
+    // Switch to chosen process.  It is the process's job
+    // to release its lock and then reacquire it
+    // before jumping back to us.
+    if (best_p) {
+      if (before_pid != -1) {
+        printf("\nCPU[%d] pid: %d -> pid: %d\n", cpuid(), before_pid, best_p->pid);
+      }
+
+      best_p->pass += best_p->stride;
+      best_p->time++;
+
+      best_p->state = RUNNING;
+      c->proc = best_p;
+
+      swtch(&c->context, &best_p->context);
+
+      before_pid = best_p->pid;
+      c->proc = 0;
+
+      release(&best_p->lock);
+    } else {
       asm volatile("wfi");
     }
   }
