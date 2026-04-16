@@ -211,3 +211,25 @@ sys_get_nproc(void)
 
   return total;
 }
+
+uint64
+sys_settickets(void)
+{
+  #define STRIDE_CONSTANT 360360
+
+  int tickets;
+  argint(0, &tickets);
+
+  if (tickets % 10 != 0 || (tickets < 10 || 150 < tickets)) {
+    return -1;
+  }
+
+  struct proc *p = myproc();
+
+  acquire(&p->lock);
+  p->tickets = tickets;
+  p->stride = STRIDE_CONSTANT / tickets;
+  release(&p->lock);
+
+  return 0;
+}

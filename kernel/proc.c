@@ -148,7 +148,7 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
-  p->ticket = 10;
+  p->tickets = 10;
   p->stride = STRIDE_CONSTANT / 10;
   p->time = 0;
   int pid = p->pid;
@@ -178,7 +178,7 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->state = UNUSED;
 
-  p->ticket = 0;
+  p->tickets = 0;
   p->stride = 0;
   p->time = 0;
   p->pass = 0;

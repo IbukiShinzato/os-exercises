@@ -32,6 +32,7 @@ int get_pgdir(void);
 int get_validpg_num(void);
 int get_cwd(char*);
 int get_nproc(void);
+int settickets(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

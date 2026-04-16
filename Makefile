@@ -157,6 +157,7 @@ UPROGS=\
 	$U/_get_validpg\
 	$U/_pwd\
 	$U/_nproc\
+	$U/_settickets\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
