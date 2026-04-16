@@ -104,13 +104,18 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  
+  int ticket;
+  int pass;
+  int stride;
+  int time;
 };
 
 struct pstat {
-  int inuse[NPROC];
-  int pids[NPROC];
-  int tickets[NPROC];
-  int pass[NPROC];
-  int stride[NPROC];
-  int time[NPROC];
-}
+  int inuse[NPROC];   
+  int pids[NPROC];    
+  int tickets[NPROC]; 
+  int pass[NPROC];    
+  int stride[NPROC];  
+  int times[NPROC]; 
+};
