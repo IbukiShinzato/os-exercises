@@ -43,6 +43,7 @@ binit(void)
   // Create linked list of buffers
   bcache.head.prev = &bcache.head;
   bcache.head.next = &bcache.head;
+
   for(b = bcache.buf; b < bcache.buf+NBUF; b++){
     b->next = bcache.head.next;
     b->prev = &bcache.head;
@@ -63,6 +64,7 @@ bget(uint dev, uint blockno)
   acquire(&bcache.lock);
 
   // Is the block already cached?
+  // LRU(Least Recently Used)
   for(b = bcache.head.next; b != &bcache.head; b = b->next){
     if(b->dev == dev && b->blockno == blockno){
       b->refcnt++;
@@ -74,6 +76,7 @@ bget(uint dev, uint blockno)
 
   // Not cached.
   // Recycle the least recently used (LRU) unused buffer.
+  // 古いものから先に使用
   for(b = bcache.head.prev; b != &bcache.head; b = b->prev){
     if(b->refcnt == 0) {
       b->dev = dev;

@@ -573,3 +573,18 @@ sys_get_cwd(void)
 
   return 0;
 }
+
+uint64
+sys_lseek(void)
+{
+  struct file *f;
+  int n;
+
+  if (argfd(0, &n, &f) < 0) {
+    return -1;
+  }
+
+  printf("get fd n: %d\n", n);
+
+  return 0;
+}

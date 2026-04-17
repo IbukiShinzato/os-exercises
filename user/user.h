@@ -33,6 +33,7 @@ int get_validpg_num(void);
 int get_cwd(char*);
 int get_nproc(void);
 int settickets(int);
+int lseek(int,int,int);
 
 struct pstat;
 int getpinfo(struct pstat*);
