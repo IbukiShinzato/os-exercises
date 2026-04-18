@@ -54,8 +54,7 @@ void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
 void            ireclaim(int);
-uint64          get_start_hole(struct file*, int);
-uint64          get_start_data(struct file*, int);
+int             get_start_offset(struct file*, int, int);
 
 // kalloc.c
 void*           kalloc(void);
