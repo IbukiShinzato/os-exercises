@@ -160,6 +160,7 @@ UPROGS=\
 	$U/_settickets\
 	$U/_ps\
 	$U/_stride_test\
+	$U/_lseek_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

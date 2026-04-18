@@ -30,3 +30,4 @@
 #define SYS_get_nproc        29
 #define SYS_settickets       30
 #define SYS_getpinfo         31
+#define SYS_lseek            32

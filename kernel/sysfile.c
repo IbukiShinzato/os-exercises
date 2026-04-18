@@ -573,3 +573,72 @@ sys_get_cwd(void)
 
   return 0;
 }
+
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+#define SEEK_HOLE 3
+#define SEEK_DATA 4
+
+#define LOOKING_FOR_HOLE 0
+#define LOOKING_FOR_DATA 1
+
+uint64 sys_lseek(void)
+{
+    struct file* f;
+    int offset;
+    int whence;
+    int fd;
+    uint64 new_off;
+
+    argfd(0, &fd, &f);
+    argint(1, &offset);
+    argint(2, &whence);
+
+    if (f == 0 || f->type != FD_INODE)
+    {
+        return -1;
+    }
+
+    switch (whence)
+    {
+        case SEEK_SET:
+            if (offset < 0) return -1;
+            new_off = offset;
+            break;
+
+        case SEEK_CUR:
+            if (offset < 0 && (uint64)(-offset) > f->off)
+            {
+                return -1;
+            }
+            new_off = f->off + offset;
+            break;
+
+        case SEEK_END:
+            ilock(f->ip);
+            uint size = f->ip->size;
+            iunlock(f->ip);
+
+            if (offset < 0 && (uint64)(-offset) > size) return -1;
+            new_off = size + offset;
+            break;
+
+        case SEEK_HOLE:
+            if (f->ip->size < offset) return -1;
+            new_off = get_start_offset(f, offset, LOOKING_FOR_HOLE);
+            break;
+
+        case SEEK_DATA:
+            if (f->ip->size < offset) return -1;
+            new_off = get_start_offset(f, offset, LOOKING_FOR_DATA);
+            break;
+
+        default:
+            return -1;
+    }
+
+    f->off = new_off;
+    return f->off;
+}
+
