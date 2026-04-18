@@ -718,3 +718,62 @@ nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }
+
+uint64
+get_start_hole(struct file *f, int offset)
+{
+  int n;
+  char c[1024];
+  uint current_off = offset;
+
+  if (offset > f->ip->size) return -1;
+
+  ilock(f->ip);
+  while(current_off < f->ip->size) {
+    int to_read = f->ip->size - current_off;
+    if(to_read > 1024) to_read = 1024;
+
+    if((n = readi(f->ip, 0, (uint64)c, current_off, to_read)) <= 0) break;
+
+    for (int b = 0; b < n; b++) {
+      if (c[b] == '\0') {
+        iunlock(f->ip);
+        return current_off + b;
+      }
+    }
+    current_off += n;
+  }
+
+  iunlock(f->ip);
+  return f->ip->size;
+} 
+
+
+uint64
+get_start_data(struct file *f, int offset)
+{
+  int n;
+  char c[1024];
+  uint current_off = offset;
+
+  if (offset > f->ip->size) return -1;
+
+  ilock(f->ip);
+  while(current_off < f->ip->size) {
+    int to_read = f->ip->size - current_off;
+    if(to_read > 1024) to_read = 1024;
+
+    if((n = readi(f->ip, 0, (uint64)c, current_off, to_read)) <= 0) break;
+
+    for (int b = 0; b < n; b++) {
+      if (c[b] != '\0') {
+        iunlock(f->ip);
+        return current_off + b;
+      }
+    }
+    current_off += n;
+  }
+
+  iunlock(f->ip);
+  return f->ip->size;
+} 

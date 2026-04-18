@@ -14,31 +14,39 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    // ファイル内に普通に読み書きする
     write(fd, "ABCDE", 5);
     close(fd);
 
     fd = open("lseek_file", O_RDONLY);
+    char buf1[5];
+    read(fd, buf1, 5);
+    printf("buf1: %s\n", buf1);
+    close(fd);
 
-    char buf[5];
-    read(fd, buf, 5);
+    fd = open("lseek_file", O_RDONLY);
+    lseek(fd, 1, 0);
+    char buf2[1];
+    read(fd, buf2, 1);
+    if (buf2[0] == 'B')
+    {
+        printf("lseek SEEK_SET test passed!\n");
+    }
+    else
+    {
+        printf("lseek SEEK_SET test failed: expected C, got %c\n", buf2[0]);
+    }
 
-    printf("buf: %s\n", buf);
-
-   // lseek(fd, 2, 0);
-
-   // char buf[1];
-   // read(fd, buf, 1);
-   // if (buf[0] == 'C')
-   // {
-   //     // Success
-   //     printf("lseek test passed!\n");
-   // }
-   // else
-   // {
-   //     // Failed
-   //     printf("lseek test failed: expected C, got %c\n", buf[0]);
-   // }
+    // now offset is 2
+    lseek(fd, 1, 1);
+    read(fd, buf2, 1);
+    if (buf2[0] == 'D')
+    {
+        printf("lseek SEEK_CUR test passed!\n");
+    }
+    else
+    {
+        printf("lseek SEEK_CUR test failed: expected C, got %c\n", buf2[0]);
+    }
 
     close(fd);
 
