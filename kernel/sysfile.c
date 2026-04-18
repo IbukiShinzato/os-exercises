@@ -577,14 +577,83 @@ sys_get_cwd(void)
 uint64
 sys_lseek(void)
 {
-  struct file *f;
-  int n;
 
-  if (argfd(0, &n, &f) < 0) {
+  // lseek(int fildes, off_t offset, int whence);
+
+  struct file *f;
+  int fd;
+  int offset;
+  int whence;
+
+  if (argint(1, &offset) < 0) {
     return -1;
   }
 
-  printf("get fd n: %d\n", n);
+  if (argint(2, &whence) < 0) {
+    return -1;
+  }
+
+  if (argint(0, &fd) < 0) {
+    return -1;
+  }
+
+  if (argfd(0, &fd, &f) < 0) {
+    return -1;
+  }
+
+  // struct file {
+  //   enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
+  //   int ref; // reference count
+  //   char readable;
+  //   char writable;
+  //   struct pipe *pipe; // FD_PIPE
+  //   struct inode *ip;  // FD_INODE and FD_DEVICE
+  //   uint off;          // FD_INODE
+  //   short major;       // FD_DEVICE
+  // };
+
+
+  // // in-memory copy of an inode
+  // struct inode {
+  //   uint dev;           // Device number
+  //   uint inum;          // Inode number
+  //   int ref;            // Reference count
+  //   struct sleeplock lock; // protects everything below here
+  //   int valid;          // inode has been read from disk?
+  // 
+  //   short type;         // copy of disk inode
+  //   short major;
+  //   short minor;
+  //   short nlink;
+  //   uint size;
+  //   uint addrs[NDIRECT+1];
+  // };
+
+  
+  // whence
+  // 0: SEEK_SET
+  // 1: SEEK_CUR
+  // 2: SEEK_END
+  // 3: SEEK_HOLE
+  // 4: SEEK_DATA
+
+  switch(whence) {
+    case 0:
+      f->off = off;
+      break;
+    case 1:
+      f->off += off;
+      break;
+    case 2:
+      f->off = f->ip->size + off; 
+      break;
+    case 3:
+      break;
+    case 4:
+      break;
+    default:
+      return -1;
+  }
 
   return 0;
 }
