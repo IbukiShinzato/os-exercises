@@ -472,6 +472,7 @@ itrunc(struct inode *ip)
   }
 
   ip->size = 0;
+  printf("DEBUG: itrunc reached!\n");
   iupdate(ip);
 }
 
