@@ -150,6 +150,13 @@ filewrite(struct file *f, uint64 addr, int n)
     // the maximum log transaction size, including
     // i-node, indirect block, allocation blocks,
     // and 2 blocks of slop for non-aligned writes.
+    
+    if(f->append) {
+      ilock(f->ip);
+      f->off = f->ip->size;
+      iunlock(f->ip);
+    }
+
     int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
     int i = 0;
     while(i < n){

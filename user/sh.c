@@ -81,12 +81,8 @@ runcmd(struct cmd *cmd)
     break;
 
   case REDIR:
-    printf("DEBUG: runcmd is reached!\n");
     rcmd = (struct redircmd*)cmd;
-    printf("DEBUG: There is position that call sys_open()\n");
     close(rcmd->fd);
-
-    // cmd = redircmd(cmd, q, eq, O_WRONLY|O_CREATE|O_APPEND, 1);
     if(open(rcmd->file, rcmd->mode) < 0){
       fprintf(2, "open %s failed\n", rcmd->file);
       exit(1);
@@ -165,24 +161,16 @@ main(void)
     char *cmd = buf;
     while (*cmd == ' ' || *cmd == '\t')
       cmd++;
-    if (*cmd == '\n') { // is a blank command
-      printf("DEBUG: buf: %s\n", buf);
+    if (*cmd == '\n') // is a blank command
       continue;
-    } 
     if(cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' '){
       // Chdir must be called by the parent, not the child.
       cmd[strlen(cmd)-1] = 0;  // chop \n
       if(chdir(cmd+3) < 0)
         fprintf(2, "cannot cd %s\n", cmd+3);
     } else {
-      // if(fork1() == 0)
-      //   runcmd(parsecmd(cmd));
-      if (fork1() == 0) {
-        // 一回でパースに持っていく
-        printf("DEBUG: main is reached!\n"); 
-        printf("DEBUG: cmd is %s\n", cmd);
+      if(fork1() == 0)
         runcmd(parsecmd(cmd));
-      }
       wait(0);
     }
   }
@@ -303,7 +291,6 @@ gettoken(char **ps, char *es, char **q, char **eq)
   case '<':
     s++;
     break;
-  // Task: set >> mode
   case '>':
     s++;
     if(*s == '>'){
@@ -335,7 +322,6 @@ peek(char **ps, char *es, char *toks)
   while(s < es && strchr(whitespace, *s))
     s++;
   *ps = s;
-  printf("DEBUG: s = %s\n", s);
   return *s && strchr(toks, *s);
 }
 
@@ -405,15 +391,10 @@ parseredirs(struct cmd *cmd, char **ps, char *es)
     case '<':
       cmd = redircmd(cmd, q, eq, O_RDONLY, 0);
       break;
-    // Use O_TRUNC
     case '>':
       cmd = redircmd(cmd, q, eq, O_WRONLY|O_CREATE|O_TRUNC, 1);
-      printf("DEBUG: > is reached!\n");
       break;
-    // Use O_APPEND
     case '+':  // >>
-      printf("DEBUG: >> is reached!\n");
-      printf("DEBUG: O_APPEND: %d\n", O_APPEND);
       cmd = redircmd(cmd, q, eq, O_WRONLY|O_CREATE|O_APPEND, 1);
       break;
     }

@@ -317,14 +317,11 @@ sys_open(void)
   begin_op();
 
   if(omode & O_CREATE){
-    printf("DEBUG: O_CREATE has\n");
-    // create(char *path, short type, short major, short minor)
     ip = create(path, T_FILE, 0, 0);
     if(ip == 0){
       end_op();
       return -1;
     }
-    printf("DEBUG: create is successful!\n");
   } else {
     if((ip = namei(path)) == 0){
       end_op();
@@ -362,21 +359,10 @@ sys_open(void)
   f->ip = ip;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+  f->append = (omode & O_APPEND) && (f->writable); 
 
   if((omode & O_TRUNC) && ip->type == T_FILE){
     itrunc(ip);
-  }
-
-  // Task
-  if((omode & O_APPEND) && ip->type == T_FILE){
-    // writei(struct inode *ip, int user_src, uint64 src, uint off, uint n)
-    // ip = ip
-    // user_src = 
-    // src = 
-    // off = 
-    // n = 
-    iupdate(ip);
-    printf("DEBUG: O_APPEND is reached in sys_open()!\n");
   }
 
   iunlock(ip);
