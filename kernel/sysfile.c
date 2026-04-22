@@ -575,15 +575,6 @@ sys_get_cwd(void)
   return 0;
 }
 
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
-#define SEEK_HOLE 3
-#define SEEK_DATA 4
-
-#define LOOKING_FOR_HOLE 0
-#define LOOKING_FOR_DATA 1
-
 uint64 sys_lseek(void)
 {
     struct file* f;
@@ -627,12 +618,15 @@ uint64 sys_lseek(void)
 
         case SEEK_HOLE:
             if (f->ip->size < offset) return -1;
-            new_off = get_start_offset(f, offset, LOOKING_FOR_HOLE);
+            // new_off = get_first_off(f->ip, offset, f->ip->size, LOOKING_FOR_HOLE);
+            ilock(f->ip);
+            new_off = f->ip->hole_off;
+            iunlock(f->ip);
             break;
 
         case SEEK_DATA:
             if (f->ip->size < offset) return -1;
-            new_off = get_start_offset(f, offset, LOOKING_FOR_DATA);
+            new_off = get_first_off(f->ip, offset, f->ip->size, LOOKING_FOR_DATA);
             break;
 
         default:
