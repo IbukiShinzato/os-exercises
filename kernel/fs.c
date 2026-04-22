@@ -530,6 +530,7 @@ writei(struct inode *ip, int user_src, uint64 src, uint off, uint n)
 {
   uint tot, m;
   struct buf *bp;
+  uint start_off = off;
 
   if(off > ip->size || off + n < off)
     return -1;
@@ -552,6 +553,17 @@ writei(struct inode *ip, int user_src, uint64 src, uint off, uint n)
 
   if(off > ip->size)
     ip->size = off;
+
+  uint end_off = off;
+
+  if ((start_off == 0 && n > 0) || (start_off <= ip->hole_off && ip->hole_off < end_off)) {
+    ip->hole_off = get_first_off(ip, 0, ip->size, LOOKING_FOR_HOLE); 
+  } else if (start_off < ip->hole_off) {
+    int new_hole = get_first_off(ip, start_off, end_off, LOOKING_FOR_HOLE);
+    if (new_hole != -1 && new_hole < ip->hole_off) {
+      ip->hole_off = new_hole;
+    }
+  }
 
   // write the i-node back to disk even if the size didn't change
   // because the loop above might have called bmap() and added a new
@@ -719,34 +731,31 @@ nameiparent(char *path, char *name)
   return namex(path, 1, name);
 }
 
-int get_start_offset(struct file* f, int offset, int mode)
+int get_first_off(struct inode* ip, uint start_off, uint end_off, int mode)
 {
     int n;
     char c[1024];
-    uint current_off = offset;
+    uint current_off = start_off;
 
-    if (offset > f->ip->size) return -1;
+    if (start_off > ip->size) return -1;
+    if (end_off > ip->size) return ip->size;
 
-    ilock(f->ip);
-    while (current_off < f->ip->size)
+    while (current_off < end_off)
     {
-        int to_read = f->ip->size - current_off;
-        if (to_read > 1024) to_read = 1024;
+        int to_read = min(end_off - current_off, 1024);
 
-        if ((n = readi(f->ip, 0, (uint64)c, current_off, to_read)) <= 0) break;
+        if ((n = readi(ip, 0, (uint64)c, current_off, to_read)) <= 0) break;
 
         for (int b = 0; b < n; b++)
         {
             if ((c[b] == '\0') ^ mode)
             {
-                iunlock(f->ip);
                 return current_off + b;
             }
         }
         current_off += n;
     }
 
-    iunlock(f->ip);
-    return f->ip->size;
+    return ip->size;
 }
 
