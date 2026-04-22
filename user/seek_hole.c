@@ -12,7 +12,8 @@ int main(int argc, char* argv[])
     char buf[BLOCK];
     memset(buf, 'A', BLOCK);
 
-    printf("Starting Linear Search benchmark...\n");
+    // printf("Starting Linear Search benchmark...\n");
+    // printf("Starting Cache Search benchmark...\n");
 
     for (int b = 1; b <= 20; b++)
     {
