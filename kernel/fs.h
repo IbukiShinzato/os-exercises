@@ -60,3 +60,13 @@ struct dirent {
   char name[DIRSIZ] __attribute__((nonstring));
 };
 
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
+#define SEEK_HOLE 3
+#define SEEK_DATA 4
+
+#define LOOKING_FOR_HOLE 0
+#define LOOKING_FOR_DATA 1
+
+
