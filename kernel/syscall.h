@@ -31,3 +31,4 @@
 #define SYS_settickets       30
 #define SYS_getpinfo         31
 #define SYS_lseek            32
+#define SYS_clone            33

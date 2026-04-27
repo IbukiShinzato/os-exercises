@@ -53,3 +53,4 @@ entry("get_nproc");
 entry("settickets");
 entry("getpinfo");
 entry("lseek");
+entry("clone");

@@ -66,6 +66,15 @@ sys_fork(void)
 }
 
 uint64
+sys_clone(void)
+{
+  uint64 stack;
+  argaddr(0, &stack);
+
+  return 0;
+}
+
+uint64
 sys_wait(void)
 {
   uint64 p;
