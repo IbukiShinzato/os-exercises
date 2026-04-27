@@ -162,6 +162,7 @@ UPROGS=\
 	$U/_stride_test\
 	$U/_lseek_test\
 	$U/_seek_hole\
+	$U/_clone_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
