@@ -3,10 +3,14 @@
 
 int main(int argc, char* argv[])
 {
-    void* stack = malloc(4096);
-    uint64 stack_top = (uint64)stack + 4096;
+    void* stack_base = malloc(4096);
+    clone((uint64)stack_base, 4096);
 
-    clone(stack_top);
+    stack_base = malloc(4096);
+    clone((uint64)stack_base, 4096);
+
+    stack_base = malloc(4096);
+    clone((uint64)stack_base, 4096);
 
     exit(0);
 }

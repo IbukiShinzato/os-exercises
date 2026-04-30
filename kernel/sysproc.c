@@ -69,9 +69,12 @@ uint64
 sys_clone(void)
 {
   uint64 stack;
-  argaddr(0, &stack);
+  int size;
 
-  return 0;
+  argaddr(0, &stack);
+  argint(1, &size);
+
+  return kclone(stack, size);
 }
 
 uint64

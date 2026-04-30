@@ -346,6 +346,14 @@ kfork(void)
   return pid;
 }
 
+int
+kclone(uint64 stack, int size)
+{
+  uint64 sp = stack + size; 
+
+  return 0;
+}
+
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
 void
