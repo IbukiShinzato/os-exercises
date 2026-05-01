@@ -349,9 +349,54 @@ kfork(void)
 int
 kclone(uint64 stack, int size)
 {
-  uint64 sp = stack + size; 
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
 
-  return 0;
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  np->pagetable = p->pagetable;
+  np->sz = p->sz;
+
+  *(np->trapframe) = *(p->trapframe);
+
+  np->trapframe->a0 = 0;
+
+  uint64 sp = stack + size; 
+  np->trapframe->sp = sp;
+
+  // increment reference counts on open file descriptors.
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+
+  release(&np->lock);
+
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  acquire(&np->lock);
+  np->state = RUNNABLE;
+  release(&np->lock);
+
+  acquire(&p->lock);
+  acquire(&np->lock);
+  np->tickets = p->tickets;
+  np->stride = p->stride;
+  np->pass = p->pass;
+  release(&p->lock);
+  release(&np->lock);
+
+  return pid;
 }
 
 // Pass p's abandoned children to init.
