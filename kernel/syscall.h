@@ -32,3 +32,4 @@
 #define SYS_getpinfo         31
 #define SYS_lseek            32
 #define SYS_clone            33
+#define SYS_sem_init         34

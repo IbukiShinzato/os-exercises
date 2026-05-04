@@ -113,6 +113,7 @@ extern uint64 sys_settickets(void);
 extern uint64 sys_getpinfo(void);
 extern uint64 sys_lseek(void);
 extern uint64 sys_clone(void);
+extern uint64 sys_sem_init(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -150,6 +151,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_getpinfo]           sys_getpinfo,
 [SYS_lseek]              sys_lseek,
 [SYS_clone]              sys_clone,
+[SYS_sem_init]           sys_sem_init,
 };
 
 void
