@@ -35,6 +35,7 @@ int get_nproc(void);
 int settickets(int);
 int lseek(int,int,int);
 int clone(uint64, int);
+int sem_init(int);
 
 struct pstat;
 int getpinfo(struct pstat*);

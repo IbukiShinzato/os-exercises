@@ -139,6 +139,9 @@ int             fetchstr(uint64, char*, int);
 int             fetchaddr(uint64, uint64*);
 void            syscall();
 
+// semaphore.c
+uint64          sem_init(int);
+
 // trap.c
 extern uint     ticks;
 void            trapinit(void);

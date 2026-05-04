@@ -284,3 +284,12 @@ sys_getpinfo(void)
 
   return 0;
 }
+
+uint64
+sys_sem_init(void)
+{
+  int count;
+  argint(0, &count);
+
+  return sem_init(count);
+}

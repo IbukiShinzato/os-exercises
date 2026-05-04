@@ -54,3 +54,4 @@ entry("settickets");
 entry("getpinfo");
 entry("lseek");
 entry("clone");
+entry("sem_init");
