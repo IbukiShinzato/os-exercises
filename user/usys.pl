@@ -55,3 +55,4 @@ entry("getpinfo");
 entry("lseek");
 entry("clone");
 entry("sem_init");
+entry("sem_wait");

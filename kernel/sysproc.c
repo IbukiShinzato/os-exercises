@@ -293,3 +293,10 @@ sys_sem_init(void)
 
   return sem_init(count);
 }
+
+uint64
+sys_sem_wait(void)
+{
+  return sem_wait();
+}
+

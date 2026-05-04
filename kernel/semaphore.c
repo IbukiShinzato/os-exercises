@@ -14,3 +14,16 @@ sem_init(int count)
 
   return 0;
 }
+
+uint64
+sem_wait()
+{
+  acquire(&s.lk);
+  while (s.count <= 0) {
+    printf("DEBUG: s.count = %d\n", s.count);
+    sleep(&s, &s.lk);
+  }
+  s.count--;
+  release(&s.lk);
+  return 0;
+}
