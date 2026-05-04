@@ -37,6 +37,7 @@ int lseek(int,int,int);
 int clone(uint64, int);
 int sem_init(int);
 int sem_wait(void);
+int sem_post(void);
 
 struct pstat;
 int getpinfo(struct pstat*);

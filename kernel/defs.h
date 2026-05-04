@@ -142,6 +142,7 @@ void            syscall();
 // semaphore.c
 uint64          sem_init(int);
 uint64          sem_wait(void);
+uint64          sem_post(void);
 
 // trap.c
 extern uint     ticks;

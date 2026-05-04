@@ -34,3 +34,4 @@
 #define SYS_clone            33
 #define SYS_sem_init         34
 #define SYS_sem_wait         35
+#define SYS_sem_post         36

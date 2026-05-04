@@ -300,3 +300,8 @@ sys_sem_wait(void)
   return sem_wait();
 }
 
+uint64
+sys_sem_post(void)
+{
+  return sem_post();
+}

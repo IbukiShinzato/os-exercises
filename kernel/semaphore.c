@@ -16,14 +16,23 @@ sem_init(int count)
 }
 
 uint64
-sem_wait()
+sem_wait(void)
 {
   acquire(&s.lk);
   while (s.count <= 0) {
-    printf("DEBUG: s.count = %d\n", s.count);
     sleep(&s, &s.lk);
   }
   s.count--;
+  release(&s.lk);
+  return 0;
+}
+
+uint64
+sem_post(void)
+{
+  acquire(&s.lk);
+  s.count++;
+  wakeup(&s);
   release(&s.lk);
   return 0;
 }
