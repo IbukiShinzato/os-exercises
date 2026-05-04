@@ -8,5 +8,10 @@ int main(int argc, char* argv[])
     fprintf(2, "sem_init failed\n");
   }
   printf("sem_init success!\n");
+
+  if (sem_wait() < 0) {
+    fprintf(2, "sem_wait failed\n");
+  }
+  printf("sem_wait success!\n");
   exit(0);
 }
