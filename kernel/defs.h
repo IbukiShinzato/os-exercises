@@ -83,6 +83,7 @@ int             get_min_pass(int);
 int             cpuid(void);
 void            kexit(int);
 int             kfork(void);
+int             kclone(uint64, int);
 int             growproc(int);
 void            proc_mapstacks(pagetable_t);
 pagetable_t     proc_pagetable(struct proc *);
@@ -172,6 +173,7 @@ int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             ismapped(pagetable_t, uint64);
 uint64          vmfault(pagetable_t, uint64, int);
 uint64          sys_get_validpg_num(void);
+uint64          uvmshare(pagetable_t, pagetable_t, uint64);
 
 // plic.c
 void            plicinit(void);

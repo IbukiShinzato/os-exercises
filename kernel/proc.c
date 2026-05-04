@@ -127,6 +127,13 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  if((p->page_ref_count = (int *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  *p->page_ref_count = 1;
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -166,9 +173,30 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
-  if(p->pagetable)
-    proc_freepagetable(p->pagetable, p->sz);
-  p->pagetable = 0;
+
+  if(p->page_ref_count){
+    (*p->page_ref_count)--;
+
+    if(*p->page_ref_count == 0){
+      if(p->pagetable)
+        proc_freepagetable(p->pagetable, p->sz);
+      kfree((void*)p->page_ref_count);
+    } else {
+      if(p->pagetable){
+        uvmunmap(p->pagetable, TRAMPOLINE, 1, 0);
+        uvmunmap(p->pagetable, TRAPFRAME, 1, 0);
+        
+        if(p->sz > 0)
+          uvmunmap(p->pagetable, 0, PGROUNDUP(p->sz)/PGSIZE, 0);
+        
+        uvmfree(p->pagetable, 0);
+      }
+    }
+    
+    p->page_ref_count = 0;
+    p->pagetable = 0;
+  }
+
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
@@ -341,6 +369,60 @@ kfork(void)
   np->stride = p->stride;
   np->pass = p->pass;
   release(&p->lock);
+  release(&np->lock);
+
+  return pid;
+}
+
+int
+kclone(uint64 stack, int size)
+{
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
+
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  if(uvmshare(p->pagetable, np->pagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+
+  if(np->page_ref_count){
+    kfree((void*)np->page_ref_count); 
+  }
+  np->page_ref_count = p->page_ref_count;
+  (*np->page_ref_count)++;
+
+  np->sz = p->sz;
+  *(np->trapframe) = *(p->trapframe);
+  np->trapframe->a0 = 0;
+  uint64 sp = stack + size;
+  sp &= ~0xF;
+  np->trapframe->sp = sp;
+
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  np->tickets = p->tickets;
+  np->stride = p->stride;
+  np->pass = p->pass;
+
+  pid = np->pid;
+
+  release(&np->lock);
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  acquire(&np->lock);
+  np->state = RUNNABLE;
   release(&np->lock);
 
   return pid;
