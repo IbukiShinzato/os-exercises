@@ -60,6 +60,8 @@ int             get_first_off(struct inode*, uint, uint, int);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+void            incref(uint64);
+int             getref(uint64);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -180,6 +182,7 @@ int             ismapped(pagetable_t, uint64);
 uint64          vmfault(pagetable_t, uint64, int);
 uint64          sys_get_validpg_num(void);
 uint64          uvmshare(pagetable_t, pagetable_t, uint64);
+uint64          cow_handler(pagetable_t, uint64);
 
 // plic.c
 void            plicinit(void);

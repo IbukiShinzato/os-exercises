@@ -344,6 +344,7 @@ uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
     if(mappages(new, i, PGSIZE, pa, flags) != 0){
       goto err;
     }
+    incref(pa);
   }
   return 0;
 
@@ -561,4 +562,36 @@ uvmshare(pagetable_t old, pagetable_t new, uint64 sz)
  err:
   uvmunmap(new, 0, i / PGSIZE, 0);
   return -1;
+}
+
+uint64
+cow_handler(pagetable_t pagetable, uint64 va)
+{
+  if(va >= MAXVA) return -1;
+
+  va = PGROUNDDOWN(va);
+  pte_t *pte = walk(pagetable, va, 0);
+
+  if(pte == 0) return -1;
+  if((*pte & PTE_V) == 0) return -1;
+  if((*pte & PTE_COW) == 0) return -1;
+
+  uint64 pa = PTE2PA(*pte);
+
+  char *mem = kalloc();
+  if(mem == 0) return -1;
+
+  memmove(mem, (char*)pa, PGSIZE);
+
+  uint flags = PTE_FLAGS(*pte);
+  flags |= PTE_W;
+  flags &= ~PTE_COW;
+
+  *pte = PA2PTE(mem) | flags;
+
+  kfree((void *)pa);
+
+  sfence_vma();
+
+  return 0;
 }
