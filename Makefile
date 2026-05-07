@@ -165,6 +165,7 @@ UPROGS=\
 	$U/_seek_hole\
 	$U/_clone_test\
 	$U/_sem_test\
+	$U/_cowbench\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

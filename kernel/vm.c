@@ -323,6 +323,36 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   return -1;
 }
 
+int
+uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
+{
+  pte_t *pte;
+  uint64 pa, i;
+  uint flags;
+
+  for(i = 0; i < sz; i+=PGSIZE){
+    if((pte = walk(old, i, 0)) == 0)
+      continue;
+    if((*pte & PTE_V) == 0)
+      continue;
+    pa = PTE2PA(*pte);
+    if((*pte & PTE_W)) {
+      *pte &= ~PTE_W;
+      *pte |= PTE_COW;
+    }
+    flags = PTE_FLAGS(*pte);
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      goto err;
+    }
+    incref(pa);
+  }
+  return 0;
+
+err:
+  uvmunmap(new, 0, i / PGSIZE, 1);
+  return -1;
+}
+
 // mark a PTE invalid for user access.
 // used by exec for the user stack guard page.
 void
@@ -532,4 +562,36 @@ uvmshare(pagetable_t old, pagetable_t new, uint64 sz)
  err:
   uvmunmap(new, 0, i / PGSIZE, 0);
   return -1;
+}
+
+uint64
+cow_handler(pagetable_t pagetable, uint64 va)
+{
+  if(va >= MAXVA) return -1;
+
+  va = PGROUNDDOWN(va);
+  pte_t *pte = walk(pagetable, va, 0);
+
+  if(pte == 0) return -1;
+  if((*pte & PTE_V) == 0) return -1;
+  if((*pte & PTE_COW) == 0) return -1;
+
+  uint64 pa = PTE2PA(*pte);
+
+  char *mem = kalloc();
+  if(mem == 0) return -1;
+
+  memmove(mem, (char*)pa, PGSIZE);
+
+  uint flags = PTE_FLAGS(*pte);
+  flags |= PTE_W;
+  flags &= ~PTE_COW;
+
+  *pte = PA2PTE(mem) | flags;
+
+  kfree((void *)pa);
+
+  sfence_vma();
+
+  return 0;
 }
